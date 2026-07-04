@@ -11,9 +11,17 @@ Plataforma de autodiagnóstico e implementación de BPA ganadero (producción bo
 - Documentación de decisiones en `/docs/`
 - Investigación de mercado en `/research/`
 
+## Contexto institucional
+
+El checklist de 321 requisitos es la herramienta oficial de la **Comisión de Ganadería
+de la Red BPA** (red público-privada: INTA, SENASA, ministerios, privados). El proyecto
+se enmarca en la "nueva etapa" de la Red: llevar sus herramientas (guías, checklists,
+autoevaluaciones, indicadores de impacto) al sector privado vía apps, ciencia de datos
+y capacitación. Ver `docs/contexto_institucional.md`.
+
 ## Dominio
 
-**BPA** = Buenas Prácticas Agropecuarias (ganaderas)
+**BPA/BPG** = Buenas Prácticas Agropecuarias/Ganaderas
 - 321 requisitos en 14 categorías (Organización, Personal, Instalaciones, Suelo, Agua, Forrajes, Estiércol, Residuos, Cambio Climático, Manejo Rodeo, Alimentación, Salud Animal, Bienestar Animal, Establecimiento)
 - Prioridades: NP1 (Esencial, 10pts) / NP2 (Importante, 5pts) / NP3 (Complementario, 2.5pts)
 - Estados: IT (Implementado Total) / IP (Implementado Parcial) / NI (No Implementado) / NA (No Aplica)
