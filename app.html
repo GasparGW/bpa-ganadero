@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPA Checklist - Acordeón</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .offline-badge {
+            background: #2ecc71;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .metric-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .metric-card .label {
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .score-total { color: #667eea; }
+        .score-max { color: #764ba2; }
+        .score-percent { color: #2ecc71; }
+        .score-items { color: #e74c3c; }
+        
+        /* Acordeón */
+        .accordion-container {
+            padding: 30px;
+        }
+        
+        .accordion-item {
+            margin-bottom: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .accordion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+        
+        .accordion-header.active {
+            background: linear-gradient(135deg, #7c8ff5 0%, #8b5cb3 100%);
+        }
+        
+        .accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .accordion-icon {
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+        
+        .accordion-header.active .accordion-icon {
+            transform: rotate(90deg);
+        }
+        
+        .accordion-text {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .accordion-badge {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+            background: white;
+        }
+        
+        .accordion-content.active {
+            max-height: 10000px;
+        }
+        
+        .accordion-body {
+            padding: 30px;
+        }
+        
+        .subsection {
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+        }
+        
+        .subsection h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .requisito-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .requisito-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .requisito-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .requisito-text {
+            flex: 1;
+            color: #333;
+            line-height: 1.6;
+            font-size: 1em;
+        }
+        
+        .priority-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 15px;
+            white-space: nowrap;
+        }
+        
+        .priority-1 {
+            background: #fee;
+            color: #c00;
+        }
+        
+        .priority-2 {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        
+        .priority-3 {
+            background: #dfe6e9;
+            color: #636e72;
+        }
+        
+        .score-display {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .estado-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .estado-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        
+        .estado-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .estado-btn.active {
+            border-width: 3px;
+        }
+        
+        .btn-it {
+            color: #27ae60;
+            border-color: #27ae60;
+        }
+        
+        .btn-it.active {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-ip {
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+        
+        .btn-ip.active {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-ni {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+        
+        .btn-ni.active {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-na {
+            color: #95a5a6;
+            border-color: #95a5a6;
+        }
+        
+        .btn-na.active {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .observaciones-container {
+            margin-top: 10px;
+        }
+        
+        .observaciones-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .observaciones-textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9em;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .observaciones-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .observaciones-textarea::placeholder {
+            color: #aaa;
+        }
+        
+        .action-buttons {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 20px 30px;
+            border-top: 2px solid #e9ecef;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .action-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .action-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .save-button {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+        
+        .reset-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .excel-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            color: #e74c3c;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-body {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .modal-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .modal-btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .estado-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .estado-btn {
+                flex: 1 1 45%;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BPA Checklist Interactivo</h1>
+            <p>Sistema de Scoring - Producción de Ganado Vacuno de Carne</p>
+            <span class="offline-badge">✓ Funciona Sin Internet</span>
+        </div>
+        
+        <div class="dashboard">
+            <div class="metric-card">
+                <h3>Score Total</h3>
+                <div class="value score-total" id="scoreTotal">0</div>
+                <div class="label">puntos obtenidos</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Score Máximo</h3>
+                <div class="value score-max" id="scoreMax">0</div>
+                <div class="label">puntos posibles</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Cumplimiento</h3>
+                <div class="value score-percent" id="scorePercent">0%</div>
+                <div class="label">porcentaje</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Evaluados</h3>
+                <div class="value score-items" id="itemsCompleted">0/320</div>
+                <div class="label">requisitos</div>
+            </div>
+        </div>
+        
+        <div class="accordion-container" id="accordionContainer"></div>
+        
+        <div class="action-buttons">
+            <button class="action-button save-button" onclick="guardarProgreso()">
+                💾 Guardar Progreso
+            </button>
+            <button class="action-button" onclick="exportarCSV()">
+                📥 Exportar CSV
+            </button>
+            <button class="action-button excel-button" onclick="exportarExcel()">
+                📊 Exportar Excel
+            </button>
+            <button class="action-button reset-button" onclick="mostrarModalReset()">
+                🗑️ Reiniciar Todo
+            </button>
+        </div>
+    </div>
+
+    <div id="resetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                ⚠️ Confirmar Reinicio
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro que querés borrar TODA la evaluación?<br><br>
+                Esta acción no se puede deshacer. Se borrarán:<br>
+                • Todos los estados (IT/IP/NI/NA)<br>
+                • Todas las observaciones<br>
+                • Todo el progreso guardado
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" onclick="cerrarModalReset()">
+                    ❌ Cancelar
+                </button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmarReset()">
+                    ✓ Sí, borrar todo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const requisitos = [
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "La empresa cuenta con misión, visión y objetivos.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "Los procesos claves1 son planificados para cumplir con los objetivos.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "La planificación de los procesos claves incluye aspectos productivos, económicos, patrimoniales, financieros, ambientales, sociales, organizacionales, legales e impositivos.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "La planificación incluye las etapas de diagnóstico y evaluación.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "La planificación incluye además, las etapas de formulación y selección de alternativas a implementar.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "Existen planes de contingencia frente a factores climáticos, económicos u otros.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "Los planes incluyen las acciones a implementar y la evaluación de su impacto.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "PLANIFICACIÓN DE LA EMPRESA",
+        "requisito": "La empresa cumple los requisitos exigidos por el mercado de destino.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "GESTIÓN: EJECUCIÓN DE LA PLANIFICACIÓN Y CONTROL",
+        "requisito": "Los planes de ejecución describen los procesos, cuentan con un cronograma de acción y responsables asignados.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "GESTIÓN: EJECUCIÓN DE LA PLANIFICACIÓN Y CONTROL",
+        "requisito": "Durante la ejecución son registrados los datos para realizar el seguimiento, monitoreo parcial y control de los planes.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "GESTIÓN: EJECUCIÓN DE LA PLANIFICACIÓN Y CONTROL",
+        "requisito": "Existen canales de comunicación entre los actores involucrados en la dirección, gestión y operación de la empresa.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESULTADOS Y APRENDIZAJE",
+        "requisito": "La información sobre la implementación del plan permite evaluar los resultados obtenidos en relación con los objetivos propuestos.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESULTADOS Y APRENDIZAJE",
+        "requisito": "Los procesos de la empresa son revisados periódicamente.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "ROLES EN LA EMPRESA",
+        "requisito": "Los roles están definidos y documentados (una persona puede asumir más de un rol).",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "DOCUMENTACIÓN",
+        "requisito": "La información clave de los procesos es registrada.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "DOCUMENTACIÓN",
+        "requisito": "La trazabilidad de la información está garantizada.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "DOCUMENTACIÓN",
+        "requisito": "Los planes, protocolos y registros están disponibles, actualizados, completos y conservados en la unidad de producción.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Los objetivos y valores de la empresa están definidos, comunicados e incorporados/reflejados en todos los procesos de trabajo,",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "El compromiso sobre los valores y conducta son promovidos entre los asociados externos y proveedores de la empresa.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Se promueve la transparencia de todos los procesos.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "La empresa realiza acciones internas que demuestran su compromiso con las personas que trabajan en la misma y con su entorno.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Se garantiza la calidad de vida laboral de las personas involucradas en la empresa, el trabajo decente, la seguridad y la salud en el ámbito laboral.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Los derechos humanos en compromiso con el futuro de los niños, la diversidad y equidad son respetados.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Se impiden todas las formas de discriminación, así como el trabajo infantil en la empresa y su entorno.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Los derechos y obligaciones como ciudadanos son ejercidos y promovidos.",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Para la selección de un proveedor se tiene en cuenta los criterios de selección establecidos por la empresa,",
+        "np": 3
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Cuando se dispone de proveedores locales, éstos se priorizan para promover el desarrollo de la zona.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "La empresa cuenta con las reglas explícitas que permiten ordenar las relaciones con clientes y otros productores.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "La empresa vela por la inocuidad de los productos que brinda al mercado.",
+        "np": 1
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "El impacto de la empresa en la comunidad (entorno) es gestionado.",
+        "np": 2
+    },
+    {
+        "hoja": "ORGANIZACIÓN DE LA EMPRESA (AVA",
+        "seccion": "RESPONSABILIDAD SOCIAL EMPRESARIAL (RSE)",
+        "requisito": "Se identifican los impactos positivos para promoverlos y los negativos para evaluar mecanismos para minimizarlos.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Hay responsable/s para los asuntos relacionados con el bienestar, la seguridad y la salud de las personas.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El personal del establecimiento cuenta con una libreta sanitaria actualizada, de acuerdo con la normativa vigente.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Los trabajadores comunican a sus superiores cualquier enfermedad o herida que padecen.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El personal cuenta con ropa de trabajo, elementos y equipamiento de protección necesarios acorde al tipo de tarea que realice.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El personal utiliza la ropa de trabajo, elementos y equipamiento de protección provistos.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "La ropa de trabajo y de protección cumple con la normativa vigente.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "La ropa de trabajo y de protección es guardada separada de los productos fitosanitarios y veterinarios.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Los elementos de protección personal son conservados en condiciones adecuadas.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El personal cuenta con elementos de higiene personal durante la jornada laboral.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El personal involucrado en la manipulación de productos fitosanitarios, veterinarios o desinfectantes está entrenado para tal fin.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Las fichas de seguridad de los productos fitosanitarios, veterinarios y desinfectantes manipulados están disponibles.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Las especificaciones dadas en los productos fitosanitarios, veterinarios y desinfectantes manipulados son cumplidas.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "La evaluación de riesgos contempla los aspectos de bienestar, seguridad y salud de las personas que se encuentran en forma",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Los planes de acción de bienestar, seguridad y salud de las personas están establecidos",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Los protocolos para cada situación de riesgo que lo requiera están documentados y disponibles.",
+        "np": 3
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El establecimiento cuenta con señalización adecuada y de fácil comprensión sobre todos los riesgos de seguridad",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "El establecimiento dispone de botiquines de primeros auxilios fijos y móviles, matafuegos",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "Los protocolos a seguir en caso de accidentes son claros y están disponibles o visibles en los lugares identificados por la evaluación de riesgos.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "BIENESTAR, SEGURIDAD Y SALUD DEL PERSONAL",
+        "requisito": "La empresa cuenta con personas capacitadas en ejecutar los protocolos de accidentes y son periódicamente recapacitados y/o reentrenados.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "REGISTRO Y RESPONSABILIDADES EN LA GESTIÓN DE LAS PERSONAS",
+        "requisito": "El personal contratado, fijo o temporal, cuenta con la documentación que así lo demuestre.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "REGISTRO Y RESPONSABILIDADES EN LA GESTIÓN DE LAS PERSONAS",
+        "requisito": "Los registros del personal permanente y temporal se encuentran completos y actualizados.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "REGISTRO Y RESPONSABILIDADES EN LA GESTIÓN DE LAS PERSONAS",
+        "requisito": "En el organigrama y el manual de responsabilidades del personal se identifican las funciones y responsabilidades.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "REGISTRO Y RESPONSABILIDADES EN LA GESTIÓN DE LAS PERSONAS",
+        "requisito": "Dichos organigrama y manual se revisan periódicamente y están disponibles en un lugar visible con acceso a todo el personal.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "REGISTRO Y RESPONSABILIDADES EN LA GESTIÓN DE LAS PERSONAS",
+        "requisito": "Cuando se contratan servicios a terceros se corrobora que todo el personal interviniente tenga la cobertura de riesgo correspondiente",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "GESTIÓN DEL PERSONAL",
+        "requisito": "La política de gestión del personal que concilia los intereses de la organización con los de sus empleados está definida.",
+        "np": 3
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "GESTIÓN DEL PERSONAL",
+        "requisito": "El plan para el desarrollo laboral del personal que trabaja en la empresa está alineado a los objetivos de la organización",
+        "np": 3
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "GESTIÓN DEL PERSONAL",
+        "requisito": "Los mecanismos de comunicación entre los diferentes actores del establecimiento están establecidos.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "GESTIÓN DEL PERSONAL",
+        "requisito": "Las personas que trabajan en el establecimiento han sido comunicadas y comprenden sobre sus funciones y responsabilidades.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "GESTIÓN DEL PERSONAL",
+        "requisito": "Trabajar en la empresa permite un balance entre lo laboral y el desarrollo personal.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "CAPACITACIÓN DEL PERSONAL",
+        "requisito": "El personal tiene la competencia necesaria para el desarrollo de sus funciones y responsabilidades.",
+        "np": 1
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "CAPACITACIÓN DEL PERSONAL",
+        "requisito": "El plan de capacitación integral para el personal actual e ingresante según las funciones y responsabilidades asignadas está documentado e incluye formación en seguridad e higiene laboral, protección del ambiente y bienestar animal.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "CAPACITACIÓN DEL PERSONAL",
+        "requisito": "Los registros de las capacitaciones realizadas están disponibles.",
+        "np": 2
+    },
+    {
+        "hoja": "PERSONAL (AVANZADO)",
+        "seccion": "CAPACITACIÓN DEL PERSONAL",
+        "requisito": "Periódicamente son evaluados los aprendizajes para programar las futuras capacitaciones o actividades de reentrenamiento.",
+        "np": 3
+    },
+    {
+        "hoja": "ESTABLECIMIENTO GANADERO",
+        "seccion": "ESTABLECIMIENTO GANADERO",
+        "requisito": "Tiene un mapa o croquis con la ubicación del establecimiento.",
+        "np": 1
+    },
+    {
+        "hoja": "ESTABLECIMIENTO GANADERO",
+        "seccion": "ESTABLECIMIENTO GANADERO",
+        "requisito": "En el mapa/croquis se detalla el apotreramiento, las instalaciones, los accesos, las fuentes hídricas, los ambientes, los suelos y demás características pertinentes.",
+        "np": 1
+    },
+    {
+        "hoja": "ESTABLECIMIENTO GANADERO",
+        "seccion": "ESTABLECIMIENTO GANADERO",
+        "requisito": "Tiene identificada la unidad de manejo de superficie1.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "requisito": "Se dispone de un croquis que permita identificar las instalaciones disponibles y su distribución en el establecimiento.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "requisito": "Las instalaciones están localizadas en zonas con drenaje y accesos adecuados.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "requisito": "Los equipos y/o herramientas utilizados son adecuados a fin de evitar impactos negativos en el animal y/o el operador.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "requisito": "Los equipos y/o herramientas se utilizan de acuerdo a las recomendaciones del fabricante.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "HIGIENE Y MANTENIMIENTO",
+        "requisito": "Tiene un plan de higiene (limpieza) y mantenimiento de las instalaciones, los equipos y las herramientas.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "HIGIENE Y MANTENIMIENTO",
+        "requisito": "Estos planes incluyen objetivo, cronograma y protocolos.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "HIGIENE Y MANTENIMIENTO",
+        "requisito": "Lleva registro de las tareas realizadas y los productos utilizados.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "HIGIENE Y MANTENIMIENTO",
+        "requisito": "Los productos utilizados están aprobados y se utilizan según las especificaciones del fabricante.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "HIGIENE Y MANTENIMIENTO",
+        "requisito": "El personal está capacitado para realizar convenientemente el plan de higiene (limpieza) y mantenimiento.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "ALAMBRADOS, CERCOS Y TRANQUERAS",
+        "requisito": "Los alambrados, cercos y tranqueras están construidos o acondicionados con materiales que no presentan riesgos para los animales ni las personas, sin salientes (púas, astillas, bisagras, bulones, clavos, tuercas) y con bordes redondeados.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "ALAMBRADOS, CERCOS Y TRANQUERAS",
+        "requisito": "Las tranqueras perimetrales se encuentran cerradas.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "ALAMBRADOS, CERCOS Y TRANQUERAS",
+        "requisito": "Los alambrados eléctricos están diseñados, instalados y mantenidos para que los animales reciban el impacto adecuado y suficiente para el aprendizaje por reflejo condicionado, y se verifican periódicamente para asegurar su correcto funcionamiento.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE TRABAJO",
+        "requisito": "Su diseño y construcción permite un manejo seguro y ágil de los animales.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE TRABAJO",
+        "requisito": "Están ubicados en lugares elevados.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE TRABAJO",
+        "requisito": "El piso del corral es antideslizante y poco agresivo para las pezuñas, sin pendiente o con pendiente levemente positiva en el sentido del avance, y sin salientes, pozos, charcos ni piedras.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE TRABAJO",
+        "requisito": "Cuenta con agua para bebida y sombra para los animales, cuando sea requerido.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE TRABAJO",
+        "requisito": "De tener corral para partos, este se encuentra cercano a las instalaciones principales.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE ALIMENTACIÓN",
+        "requisito": "Los corrales de alimentación tienen un diseño que permite a los animales desarrollar sus actividades normalmente.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE ALIMENTACIÓN",
+        "requisito": "Poseen una pendiente adecuada para evitar encharcamientos y favorecer la evacuación de efluentes.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE ALIMENTACIÓN",
+        "requisito": "El tamaño de los comederos y su frente de acceso es adecuado a las características del animal y del alimento.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CORRALES DE ALIMENTACIÓN",
+        "requisito": "Los comederos están ubicados facilitando el acceso de los animales y las tareas de abastecimiento de los operarios.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "GESTIÓN DE EFLUENTES Y ESTIÉRCOL",
+        "requisito": "Realiza gestión y manejo de efluentes.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "GESTIÓN DE EFLUENTES Y ESTIÉRCOL",
+        "requisito": "El sistema de gestión de efluentes se adecua a la normativa vigente.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "GESTIÓN DE EFLUENTES Y ESTIÉRCOL",
+        "requisito": "Para su construcción y mantenimiento se tiene en cuenta los volúmenes producidos.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "GESTIÓN DE EFLUENTES Y ESTIÉRCOL",
+        "requisito": "El estiércol se almacena en un lugar impermeabilizado, preparado para tal fin.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Su diseño permite trabajar en interconexión como si fueran un conjunto.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Cuenta con salidas laterales, en caso de querer evitar trabajar con alguno de ellos.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Su diseño permite un desplazamiento fluido y seguro de los animales.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Poseen pisos antideslizantes y sin salientes.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Sus paredes son ciegas, evitando distracciones en los animales.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "La casilla de operaciones tiene el número necesario de puertas para trabajar debajo, detrás y en ambos flancos del animal.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "La casilla de operaciones permite el libre paso de los operarios por delante de la cabeza del animal.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "El cepo posee cierre gradual.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "La rampa del embarcadero cuenta con una pendiente adecuada.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Posee balanza.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "MANGA, CEPOS, CASILLAS DE OPERACIONES, BALANZA Y EMBARCADERO",
+        "requisito": "Calibra periódicamente la balanza en base a especificaciones del fabricante.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "DEPÓSITOS Y GALPONES GENERALES",
+        "requisito": "Están construidos de acuerdo a la función que cumplen.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CAMINOS Y CALLEJONES",
+        "requisito": "Los caminos y callejones son abovedados.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CAMINOS Y CALLEJONES",
+        "requisito": "Se realiza mantenimiento para evitar encharcamiento.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "CAMINOS Y CALLEJONES",
+        "requisito": "Están diseñados para evitar la erosión.",
+        "np": 3
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "Está diseñado en función de la demanda de agua planificada en cantidad y calidad.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "El diseño de las aguadas y los bebederos asegura la eficiente captación, almacenamiento y distribución del agua.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "Las aguadas y los bebederos están ubicados en relación al apotreramiento.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "Los molinos funcionan correctamente y reciben mantenimiento acorde a su uso.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "Las bombas de agua funcionan correctamente y reciben mantenimiento acorde a su uso.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "SISTEMA DE ALMACENAMIENTO Y ABASTECIMIENTO DE AGUA",
+        "requisito": "Los bebederos funcionan correctamente y reciben mantenimiento acorde a su uso.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES PARA EL PERSONAL",
+        "requisito": "Las viviendas que se proveen al personal son habitables y confortables.",
+        "np": 1
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES PARA EL PERSONAL",
+        "requisito": "Cuenta con comedor acorde a la cantidad de personal.",
+        "np": 2
+    },
+    {
+        "hoja": "INSTALACIONES, EQUIPOS Y HERRAM",
+        "seccion": "INSTALACIONES PARA EL PERSONAL",
+        "requisito": "Cuenta con un espacio de esparcimiento (cancha de fútbol, matera)",
+        "np": 3
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "CARACTERIZACIÓN Y DIAGNÓSTICO DE CAPACIDAD PRODUCTIVA Y DISPONIBILIDAD DE NUTRIENTES DEL SUELO",
+        "requisito": "Conoce las características del suelo identificando su potencialidad y limitantes productivas.",
+        "np": 1
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "CARACTERIZACIÓN Y DIAGNÓSTICO DE CAPACIDAD PRODUCTIVA Y DISPONIBILIDAD DE NUTRIENTES DEL SUELO",
+        "requisito": "Para conocer las características del suelo se basa en cartas o mapas de suelos, análisis de laboratorio y/u observaciones a campo.",
+        "np": 3
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "CARACTERIZACIÓN Y DIAGNÓSTICO DE CAPACIDAD PRODUCTIVA Y DISPONIBILIDAD DE NUTRIENTES DEL SUELO",
+        "requisito": "Respecto al riesgo de degradación del suelo se evalúan propiedades físicas, químicas y biológicas.",
+        "np": 2
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "CARACTERIZACIÓN Y DIAGNÓSTICO DE CAPACIDAD PRODUCTIVA Y DISPONIBILIDAD DE NUTRIENTES DEL SUELO",
+        "requisito": "Respecto a la disponibilidad de nutrientes: se cumple con los requisitos enunciados en Buenas Prácticas Agrícolas.",
+        "np": 1
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "PLAN DE MANEJO",
+        "requisito": "Existe un plan de manejo del suelo, elaborado e implementado, el cual contempla las condiciones agroecológicas y climáticas.",
+        "np": 1
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "PLAN DE MANEJO",
+        "requisito": "Para realizar las actividades que se encuentran en el plan de manejo, se tiene en cuenta la capacidad productiva del suelo",
+        "np": 1
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "PLAN DE MANEJO",
+        "requisito": "Están establecidos los indicadores de salud del suelo (su metodología y periodicidad de evaluación).",
+        "np": 2
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "PLAN DE MANEJO",
+        "requisito": "Los indicadores de salud del suelo se registran y analizan.",
+        "np": 2
+    },
+    {
+        "hoja": "SUELO",
+        "seccion": "PLAN DE MANEJO",
+        "requisito": "Las técnicas de pastoreo y otras prácticas propenden a la conservación del suelo.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA",
+        "requisito": "Se utiliza el agua de manera adecuada y eficiente.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA",
+        "requisito": "Hay disponibilidad de agua de calidad y en cantidad suficiente para todos sus usos.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA",
+        "requisito": "Se evita la contaminación y la salinización de las fuentes de aguas naturales superficiales y/o subterráneas.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA",
+        "requisito": "No hay alteración ni desvío de los cursos naturales de agua, por acción humana.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Están identificados los posibles riesgos de contaminación de las fuentes de agua presentes.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Se toman medidas para proteger las fuentes de agua de daños y contaminación.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Respecto a la calidad del agua se realizan análisis de agua periódicamente.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Respecto a la calidad del agua se analizan los parámetros microbiológicos, químicos y físicos.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Las muestras de agua son recolectadas según protocolo pertinente.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "CALIDAD DEL RECURSO HÍDRICO",
+        "requisito": "Los análisis se realizan en un laboratorio competente y los resultados se documentan y comparan con valores de referencia.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Se garantiza la disponibilidad y accesibilidad de agua potable para todas las personas del establecimiento.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Las fuentes de agua no aptas para consumo humano están identificadas de forma clara y visible.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Están documentados los cálculos de la disponibilidad de agua para consumo animal según la capacidad/carga del potrero o corral.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Se garantiza la accesibilidad a la cantidad de agua requerida por los animales.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Está evaluado y documentado el riesgo de que la demanda de agua para consumo animal no sea satisfecha.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Existe plan de acción para demanda de agua no satisfecha.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "AGUA PARA CONSUMO HUMANO Y ANIMAL",
+        "requisito": "Respecto a la limpieza de bebederos, está establecido el modo, la frecuencia y la evaluación de dicha acción.",
+        "np": 2
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "OTROS USOS DEL AGUA EN EL ESTABLECIMIENTO",
+        "requisito": "Se toman medidas de precaución para evitar la contaminación del agua de bebida cuando se la utiliza en equipos y maquinarias.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "OTROS USOS DEL AGUA EN EL ESTABLECIMIENTO",
+        "requisito": "Ante la construcción de perforaciones de extracción de agua se contempla que el lugar seleccionado está aislado de posibles fuentes de contaminación.",
+        "np": 1
+    },
+    {
+        "hoja": "AGUA",
+        "seccion": "OTROS USOS DEL AGUA EN EL ESTABLECIMIENTO",
+        "requisito": "El uso de agua para riego cumple con los requisitos de la Guía de Buenas Prácticas Agrícolas",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Están identificadas los tipos de las especies forrajeras presentes en el establecimiento.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Se realiza estimación de la oferta forrajera por estación productiva (planificación forrajera)",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Existe planificación de uso de productos y aplicaciones fitosanitarias",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Se cumple con los requisitos enunciados en Buenas Prácticas Agrícolas respecto a elección, manipulación, aplicación y almacenamiento de productos fitosanitarios.",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Se realiza relevamiento de existencia de plantas tóxicas para el ganado vacuno.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "Se establecen mecanismos para evitar el consumo de plantas tóxicas para el ganado vacuno.",
+        "np": 3
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "FORRAJES",
+        "requisito": "El aprovechamiento forrajero considera la convivencia entre la fauna nativa y la doméstica.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "Se identifica la vegetación nativa y se evita su degradación.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "Ante la posibilidad de utilización de bosques/montes nativos, se diseñan e implementan planes del manejo del bosque.",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "Se promueve el uso ganadero de la biodiversidad de la vegetación nativa en forma sustentable.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "La producción forrajera cumple con los requisitos enunciados en Buenas Prácticas Agrícolas.",
+        "np": 2
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "Las técnicas de pastoreo propenden a mantener el potencial y la calidad del recurso forrajero.",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "VEGETACIÓN NATIVA Y PRODUCCIÓN DE FORRAJES Y GRANOS PARA CONSUMO ANIMAL",
+        "requisito": "Las técnicas de pastoreo propenden a mantener el suelo en forma sustentable.",
+        "np": 1
+    },
+    {
+        "hoja": "FORRAJES",
+        "seccion": "MANEJO DEL FUEGO",
+        "requisito": "Si se utiliza fuego para el manejo del forraje, se lo realiza bajo la prescripción de un profesional/técnico/ personal capacitado.",
+        "np": 2
+    },
+    {
+        "hoja": "GESTIÓN DE ESTIÉRCOL Y EFLUENTE",
+        "seccion": "GESTIÓN DE ESTIÉRCOL Y EFLUENTES",
+        "requisito": "Se evitan los potenciales riesgos de contaminación del recurso hídrico y suelo por estiércol y efluentes.",
+        "np": 1
+    },
+    {
+        "hoja": "GESTIÓN DE ESTIÉRCOL Y EFLUENTE",
+        "seccion": "GESTIÓN DE ESTIÉRCOL Y EFLUENTES",
+        "requisito": "Se cuenta con plan de tratamiento de estiércol y efluentes.",
+        "np": 1
+    },
+    {
+        "hoja": "GESTIÓN DE ESTIÉRCOL Y EFLUENTE",
+        "seccion": "GESTIÓN DE ESTIÉRCOL Y EFLUENTES",
+        "requisito": "Respecto al estiércol y efluentes se considera la recolección, el almacenamiento, el acondicionamiento, el tratamiento y su posible uso, teniendo en cuenta el clima y los volúmenes generados en las distintas épocas del año.",
+        "np": 1
+    },
+    {
+        "hoja": "GESTIÓN DE ESTIÉRCOL Y EFLUENTE",
+        "seccion": "GESTIÓN DE ESTIÉRCOL Y EFLUENTES",
+        "requisito": "El sistema de tratamiento de efluentes se encuentra adecuadamente aislado.",
+        "np": 1
+    },
+    {
+        "hoja": "GESTIÓN DE LOS RESIDUOS",
+        "seccion": "GESTIÓN DE LOS RESIDUOS",
+        "requisito": "Para la disposición de los residuos de fitosanitarios y productos veterinarios se siguen las recomendaciones de los fabricantes.",
+        "np": 1
+    },
+    {
+        "hoja": "GESTIÓN DE LOS RESIDUOS",
+        "seccion": "GESTIÓN DE LOS RESIDUOS",
+        "requisito": "Existe un área adecuada para el almacenamiento de los distintos tipos de residuos.",
+        "np": 1
+    },
+    {
+        "hoja": "ADAPTACIÓN Y MITIGACIÓN AL CAMB",
+        "seccion": "ADAPTACIÓN Y MITIGACIÓN AL CAMBIO CLIMÁTICO",
+        "requisito": "Se promueven prácticas para favorecer el aumento de la productividad y la eficiencia de los sistemas productivos.",
+        "np": 1
+    },
+    {
+        "hoja": "ADAPTACIÓN Y MITIGACIÓN AL CAMB",
+        "seccion": "ADAPTACIÓN Y MITIGACIÓN AL CAMBIO CLIMÁTICO",
+        "requisito": "Se promueven prácticas para favorecer el incremento del stock de carbono orgánico.",
+        "np": 2
+    },
+    {
+        "hoja": "ADAPTACIÓN Y MITIGACIÓN AL CAMB",
+        "seccion": "ADAPTACIÓN Y MITIGACIÓN AL CAMBIO CLIMÁTICO",
+        "requisito": "Existe un plan de emergencia para minimizar los efectos de los desastres naturales y/o las condiciones climáticas extremas.",
+        "np": 3
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "El establecimiento tiene agrupados los animales por unidades de manejo.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Sigue un cronograma de prácticas según la unidad de manejo (categoría, origen).",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Dichas prácticas cuentan con responsables asignados.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Tiene unidades de manejo homogéneas en origen, categoría, tamaño corporal y/o estado sanitario nutricional.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Los animales están identificados según normas vigentes.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Lleva registro de los animales identificados.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Tiene registro de las existencias del rodeo por unidad de manejo.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Lleva registros de prácticas realizadas por unidad de manejo.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Inspecciona de forma regular el estado y la adecuada provisión de agua.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO GENERAL DEL RODEO",
+        "requisito": "Inspecciona de forma regular el estado y la adecuada provisión de alimento.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Cuenta con un plan reproductivo adecuado para sus características.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Cuenta con un plan de acción ante contingencias.",
+        "np": 2
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Lleva registro de prácticas realizadas de manejo reproductivo y visitas del veterinario.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza diagnóstico pre-servicio en los animales destinados a su primera temporada reproductiva.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza examen andrológico de los toros.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza servicio estacionado.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza sincronización de celos.",
+        "np": 2
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza inseminación artificial.",
+        "np": 2
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza diagnóstico de preñez en todos los vientres que recibieron servicio.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Identifica los animales que abortan.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Cuenta con un lote de pre-parto.",
+        "np": 3
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Realiza vacunaciones al pre-parto contra enfermedades neonatales.",
+        "np": 2
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "El personal responsable de la atención del parto y periparto está capacitado para tal fin.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Identifica los animales que no presentan ternero al pie.",
+        "np": 1
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Cuenta con un protocolo para cubrir los requerimientos nutricionales de terneros que perdieron a sus madres.",
+        "np": 2
+    },
+    {
+        "hoja": "MANEJO DE RODEO",
+        "seccion": "MANEJO REPRODUCTIVO",
+        "requisito": "Controla y desinfecta el cordón umbilical de los terneros recién nacidos.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Cuenta con un plan de alimentación que garantiza en calidad y cantidad los nutrientes requeridos para lograr los objetivos productivos planteados.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Evalúa y documenta la oferta planificada de alimento de acuerdo a la producción forrajera.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Evalúa y documenta la oferta planificada de alimento de acuerdo a la producción de granos.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Evalúa y documenta la oferta planificada de alimento de acuerdo a la producción de silajes.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Cuenta con la logística para garantizar la disponibilidad del alimento en tiempo y forma.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Cuenta con un plan de acción para situaciones donde la productividad forrajera resultara menor a la planificada.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "El personal interviniente en la alimentación está capacitado para tal fin.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "El personal interviniente en la alimentación posee nociones básicas de enfermedades digestivas y su tratamiento.",
+        "np": 3
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Monitorea de forma regular el pastoreo directo o entregado.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Previene cualquier riesgo de contaminación física química o biológica del alimento.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Realiza de forma gradual los cambios en los regímenes de alimentación de los animales.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DE LA ALIMENTACIÓN",
+        "requisito": "Limpia regularmente los equipos y herramientas utilizados en la alimentación.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DEL PASTOREO",
+        "requisito": "Elabora o implementa una planificación de pastoreo que satisfaga los requerimientos de los animales.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DEL PASTOREO",
+        "requisito": "Cuenta con callejones para el desplazamiento de los animales hacia y desde el lugar de pastoreo.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DEL PASTOREO",
+        "requisito": "Distribuye de forma adecuada la ración complementaria a animales en pastoreo.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "MANEJO DEL PASTOREO",
+        "requisito": "Respeta los períodos de retiro de fitosanitarios en los potreros que son destinados a pastoreo.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ENTREGA DE ALIMENTOS",
+        "requisito": "Utiliza alimentos y aditivos que cumplan con la normativa vigente.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ENTREGA DE ALIMENTOS",
+        "requisito": "Lleva registro de la composición y entrega de alimentos por unidad de manejo.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ENTREGA DE ALIMENTOS",
+        "requisito": "Realiza controles de calidad periódicos de los alimentos destinados al consumo animal.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ENTREGA DE ALIMENTOS",
+        "requisito": "Registra los resultados de los análisis previamente citados.",
+        "np": 3
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ENTREGA DE ALIMENTOS",
+        "requisito": "Emplea procedimientos que prevengan la inclusión de componentes indeseables.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "DISTRIBUCIÓN DE LOS ALIMENTOS",
+        "requisito": "Respeta el espacio adecuado de comedero suficiente para que todos los animales obtengan su alimento.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "DISTRIBUCIÓN DE LOS ALIMENTOS",
+        "requisito": "Realiza lectura de comederos.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "DISTRIBUCIÓN DE LOS ALIMENTOS",
+        "requisito": "Registra la lectura de comederos.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "DISTRIBUCIÓN DE LOS ALIMENTOS",
+        "requisito": "Retira los excedentes de alimento de los comederos previo a llenarlos nuevamente.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "DISTRIBUCIÓN DE LOS ALIMENTOS",
+        "requisito": "Previene la formación de pozos delante de los comederos.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Almacena los alimentos en ambientes que favorezcan la buena conservación de sus propiedades y características.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Identifica correctamente los alimentos almacenados.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Almacena de forma separada los alimentos evitando riesgos de contaminación cruzada.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "La confección de forrajes conservados se realiza siguiendo las prácticas que permitan lograr mantener su máximo valor nutricional e inocuidad.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Previene el ingreso de plagas y animales a los lugares de almacenamiento.",
+        "np": 2
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Cuenta con registros de inventario de alimentos almacenados.",
+        "np": 1
+    },
+    {
+        "hoja": "ALIMENTACIÓN",
+        "seccion": "ALMACENAMIENTO DE LOS ALIMENTOS",
+        "requisito": "Gestiona según la normativa vigente los residuos de elementos utilizados en el almacenamiento.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Realiza planificación sanitaria anual del establecimiento bajo supervisión veterinaria.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Cuenta con asesoramiento veterinario permanente.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Posee un plan sanitario escrito para la prevención, control y/o erradicación de enfermedades.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario contempla enfermedades de control obligatorio.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario contempla enfermedades de control no obligatorio.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario se encuentra implementado.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Tiene un calendario de vacunaciones.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Tiene un calendario de actividades sanitarias (Ejemplos: desparasitaciones, revisación de toros, toma de muestras para brucelosis, etc.) consignadas en el plan sanitario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario y los calendarios de actividades sanitarias están comunicados al personal responsable y accesible para su consulta.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario, los calendarios y la revisión sanitaria están ajustados a las unidades de manejo estipuladas.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Posee y está actualizado el Libro de Registro de Tratamientos (SENASA).",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El libro de registros incluye además visitas, diagnósticos e indicaciones del veterinario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Hay una persona designada como responsable de la salud y bienestar animales.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "La persona responsable ha recibido capacitación sobre la temática.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Hay registro actualizado de las capacitaciones.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El plan sanitario, los calendarios y el libro de registros de tratamientos están comunicados al personal responsable y accesible para su consulta.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Planifica las tareas sanitarias con tiempo y organiza operativamente la tarea.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Encierra con antelación a los animales, con agua en bebederos, evitando manejo brusco.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Controla el estado de salud y nutricional de los animales previamente a la vacunación.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Se asegura contar con todo el material necesario para la tarea sanitaria en buen estado para su uso.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Trabaja a buen ritmo pero sin apresurar las tareas, permitiendo hacerla correctamente.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Mantiene la cadena de frío en los medicamentos que lo requieren.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "En el caso de inyectables respeta dosis, lugar de aplicación y medidas de agujas recomendados.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Cambia la aguja cada 20-30 animales o cuando sufre un desperfecto.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Se asegura que la totalidad de los animales han recibido el tratamiento sanitario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Mantiene en observación a los animales luego de la tarea sanitaria.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Aprovecha para hacer una inspección general de la hacienda y comprueba su correcta identificación.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Los animales nuevos que ingresan provienen de establecimientos con estado sanitario igual o superior.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Los animales nuevos que ingresan permanecen un período en cuarentena apartados del rodeo residente, es observado y se practican revisaciones y análisis complementarios.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "Estos animales nuevos son identificados y reciben los tratamientos previstos en el plan sanitario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "PREVENCIÓN Y SANIDAD",
+        "requisito": "El semen, óvulos y embriones provienen de fuentes sanas y seguras, debidamente acreditadas.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Ante cualquier síntoma de enfermedad se informa al responsable de salud y bienestar de los animales.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Dicho responsable toma las medidas sanitarias correspondientes o llama al veterinario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Los animales enfermos son identificados, tratados y apartados para su tratamiento si es necesario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Posee corrales especiales para aislamiento.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Lleva un registro de los animales identificados como enfermos y en tratamiento.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Los tratamientos quirúrgicos o de cierta complejidad son realizados por un veterinario.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Si muere un animal intenta identificar su causa.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Si los animales tienen síntomas que pueden comprometer a las personas o a otros animales se convoca al veterinario y médico humano, según corresponda.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Si sospecha de alguna enfermedad de denuncia obligatoria, notifica inmediatamente a la autoridad sanitaria competente.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Posee un protocolo para la disposición de desechos, restos placentarios, fetos y animales muertos, que contempla medidas de bioseguridad y de prevención de contaminación.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Dicho protocolo es conocido por el personal.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE ANIMALES ENFERMOS",
+        "requisito": "Dicho protocolo se implementa ante situaciones que lo ameritan.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Todos los medicamentes utilizados están aprobados para su uso por la autoridad sanitaria competente.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Todos los medicamentos son suministrados bajo prescripción veterinaria.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Los medicamentos son manipulados y almacenados separados de otros productos y elementos.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Los medicamentos son almacenados de acuerdo a las instrucciones de su etiqueta.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Se garantiza la cadena de frío para medicamentos que así lo requieren.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Cuenta con un depósito para el almacenamiento de medicamentos, con acceso restringido e identificado.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Cuenta con un inventario actualizado del stock de medicamentos.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Se sigue con la regla “PEPS” (lo que primero entra, primero sale).",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Se verifica la fecha de vencimiento previamente a ser administrado.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "No se utilizan medicamentes vencidos.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Se presta especial atención a las dosis y vías de aplicación.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Las jeringas y agujas están en buenas condiciones para su uso.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Todas las maniobras sanitarias se realizan de forma tal que generen el menor estrés posible.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Los tratamientos sanitarios se realizan respetando las indicaciones de veterinario, sobre todo aquellos que pueden implicar riesgos",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Todo elemento descartable o restos de medicamentos son gestionados según lo planificado para la gestión de residuos, cumpliendo con la normativa vigente.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Las sustancias tóxicas o no aptas para uso animal, se encuentran identificadas y almacenadas asegurando que los animales no puedan acceder a ellos.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "El personal está capacitado para la manipulación de productos sanitarios y utiliza ropa y equipo adecuado.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Los animales identificados bajo tratamiento no son enviados a consumo, sin respetar el período de carencia del medicamento utilizado.",
+        "np": 1
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO DE MEDICAMENTOS",
+        "requisito": "Se informa al comprador si los animales se encuentran en tratamiento y se da detalle.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "Tiene identificados insectos, roedores u otros animales que puedan ser nocivos para el ganado.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "Posee un plan de manejo integrado de plagas para aquellas que resulten relevantes.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "El plan contempla generar el menor impacto negativo al ambiente.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "Tiene identificadas zonas de riesgo de propagación de plagas.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "Posee un registro de los productos utilizados en el control de plagas.",
+        "np": 2
+    },
+    {
+        "hoja": "SALUD ANIMAL",
+        "seccion": "MANEJO INTEGRADO DE PLAGAS",
+        "requisito": "Tiene procedimientos escritos que explica las técnicas utilizadas en el control de plagas.",
+        "np": 3
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LAS PERSONAS Y LA EMPRESA",
+        "requisito": "El personal que realiza el manejo de los animales se encuentra capacitado en bienestar animal.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LAS PERSONAS Y LA EMPRESA",
+        "requisito": "Cuenta con un plan de emergencia para mitigar eventuales situaciones que afecten el aprovisionamiento de agua y/o alimentos.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LA INFRAESTRUCTURA DE LA PRODUCCIÓN",
+        "requisito": "El lugar donde se desarrolla la actividad es adecuado al biotipo y raza que se produce.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LA INFRAESTRUCTURA DE LA PRODUCCIÓN",
+        "requisito": "Las instalaciones están diseñadas, construidas y mantenidas para facilitar el manejo, evitar lesiones y reducir el estrés.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LA INFRAESTRUCTURA DE LA PRODUCCIÓN",
+        "requisito": "La manga y demás instalaciones donde se manejan los animales tienen una iluminación homogénea evitando sombras y contrastes de luz.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "LA INFRAESTRUCTURA DE LA PRODUCCIÓN",
+        "requisito": "Cuenta con un lugar de buen drenaje y cómodo para que los animales puedan echarse, descansar y desplazarse con facilidad.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Las unidades de manejo de los animales permiten interacciones entre ellos que minimizan heridas y estrés.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Cuando se mezclan animales se les da espacio suficiente para que se reagrupen fácilmente.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Se evita aislar animales innecesariamente.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Se evita el hacinamiento de los animales.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Se conocen las características del comportamiento de la especie.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "El manejo y la conducción de los animales es de forma calma, sin maltratos ni apuros.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Para el arreo se utilizan elementos que no generan heridas.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Se evita el uso de perros en los arreos.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "El destete se realiza minimizando el estrés.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Se minimizan los tiempos de espera en corrales y mangas.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "EL ANIMAL Y SU MANEJO",
+        "requisito": "Las hembras próximas al parto deben estar bajo supervisión y movilizarse lo menos posible.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA ALIMENTACIÓN",
+        "requisito": "Los animales tienen acceso a agua y alimento de calidad y cantidad adecuada según sus necesidades.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA ALIMENTACIÓN",
+        "requisito": "Ante cambios en las dietas se tiene en cuenta un período de acostumbramiento.",
+        "np": 2
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Los animales más susceptibles de sufrir enfermedades (terneros, animales recién ingresados o con antecedentes de lesiones) son monitoreados más frecuentemente.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Se minimiza el dolor en maniobras zootécnicas menores (vacunaciones, colocación de caravanas, etc.)",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Las maniobras zootécnicas invasivas se realizan bajo normas de asepsia y minimizando el dolor.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Los animales enfermos y/o con incapacidad de desplazarse son tratados acorde a su situación.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Los tratamientos veterinarios se implementan lo antes posible.",
+        "np": 1
+    },
+    {
+        "hoja": "BIENESTAR ANIMAL",
+        "seccion": "BUENA SALUD",
+        "requisito": "Cuenta con un protocolo de sacrificio humanitario para animales enfermos o heridos para implementar si el veterinario lo decide.",
+        "np": 2
+    }
+];
+        
+        const SCORE_VALUES = {
+            1: 10,
+            2: 5,
+            3: 2.5
+        };
+        
+        const ESTADO_MULTIPLIERS = {
+            'IT': 1.0,
+            'IP': 0.5,
+            'NI': 0.0,
+            'NA': null
+        };
+        
+        const HOJAS_ORDENADAS = ["ORGANIZACIÓN DE LA EMPRESA (AVA", "PERSONAL (AVANZADO)", "ESTABLECIMIENTO GANADERO", "INSTALACIONES, EQUIPOS Y HERRAM", "SUELO", "AGUA", "FORRAJES", "GESTIÓN DE ESTIÉRCOL Y EFLUENTE", "GESTIÓN DE LOS RESIDUOS", "ADAPTACIÓN Y MITIGACIÓN AL CAMB", "MANEJO DE RODEO", "ALIMENTACIÓN", "SALUD ANIMAL", "BIENESTAR ANIMAL"];
+        const NOMBRES_PESTANAS = {"ORGANIZACIÓN DE LA EMPRESA (AVA": "Organización", "PERSONAL (AVANZADO)": "Personal", "ESTABLECIMIENTO GANADERO": "Establecimiento", "INSTALACIONES, EQUIPOS Y HERRAM": "Instalaciones", "SUELO": "Suelo", "AGUA": "Agua", "FORRAJES": "Forrajes", "GESTIÓN DE ESTIÉRCOL Y EFLUENTE": "Estiércol", "GESTIÓN DE LOS RESIDUOS": "Residuos", "ADAPTACIÓN Y MITIGACIÓN AL CAMB": "Cambio Climático", "MANEJO DE RODEO": "Manejo Rodeo", "ALIMENTACIÓN": "Alimentación", "SALUD ANIMAL": "Salud Animal", "BIENESTAR ANIMAL": "Bienestar Animal"};
+        const NOMBRES_COMPLETOS = {"ORGANIZACIÓN DE LA EMPRESA (AVA": "ORGANIZACIÓN DE LA EMPRESA", "PERSONAL (AVANZADO)": "PERSONAL", "ESTABLECIMIENTO GANADERO": "ESTABLECIMIENTO GANADERO", "INSTALACIONES, EQUIPOS Y HERRAM": "INSTALACIONES, EQUIPOS Y HERRAMIENTAS", "SUELO": "SUELO", "AGUA": "AGUA", "FORRAJES": "FORRAJES", "GESTIÓN DE ESTIÉRCOL Y EFLUENTE": "GESTIÓN DE ESTIÉRCOL Y EFLUENTES", "GESTIÓN DE LOS RESIDUOS": "GESTIÓN DE LOS RESIDUOS", "ADAPTACIÓN Y MITIGACIÓN AL CAMB": "ADAPTACIÓN Y MITIGACIÓN AL CAMBIO CLIMÁTICO", "MANEJO DE RODEO": "MANEJO DE RODEO", "ALIMENTACIÓN": "ALIMENTACIÓN", "SALUD ANIMAL": "SALUD ANIMAL", "BIENESTAR ANIMAL": "BIENESTAR ANIMAL"};
+        
+        let evaluacion = {};
+        
+        function init() {
+            cargarProgreso();
+            renderAccordion();
+            updateMetrics();
+        }
+        
+        function renderAccordion() {
+            const container = document.getElementById('accordionContainer');
+            let html = '';
+            
+            HOJAS_ORDENADAS.forEach((hoja, index) => {
+                const requisitosHoja = requisitos.filter(r => r.hoja === hoja);
+                const nombreCompleto = NOMBRES_COMPLETOS[hoja];
+                const count = requisitosHoja.length;
+                
+                html += `
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion(${index})">
+                            <div class="accordion-title">
+                                <span class="accordion-icon" id="icon-${index}">▶</span>
+                                <span class="accordion-text">${nombreCompleto}</span>
+                            </div>
+                            <span class="accordion-badge">${count} requisitos</span>
+                        </div>
+                        <div class="accordion-content" id="content-${index}">
+                            <div class="accordion-body">
+                                ${renderRequisitosPorHoja(requisitosHoja)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function toggleAccordion(index) {
+            const header = document.querySelectorAll('.accordion-header')[index];
+            const content = document.getElementById(`content-${index}`);
+            
+            header.classList.toggle('active');
+            content.classList.toggle('active');
+        }
+        
+        function renderRequisitosPorHoja(requisitosHoja) {
+            let html = '';
+            let currentSection = '';
+            
+            requisitosHoja.forEach((req) => {
+                const globalIndex = requisitos.findIndex(r => 
+                    r.hoja === req.hoja && 
+                    r.seccion === req.seccion && 
+                    r.requisito === req.requisito &&
+                    r.np === req.np
+                );
+                
+                if (req.seccion !== currentSection) {
+                    if (currentSection !== '') {
+                        html += '</div>';
+                    }
+                    html += `<div class="subsection"><h3>${req.seccion}</h3>`;
+                    currentSection = req.seccion;
+                }
+                
+                const priorityText = req.np === 1 ? 'Esencial' : req.np === 2 ? 'Importante' : 'Complementario';
+                const scoreValue = SCORE_VALUES[req.np];
+                const savedData = evaluacion[globalIndex] || {};
+                const estado = savedData.estado || '';
+                const observacion = savedData.observacion || '';
+                
+                html += `
+                    <div class="requisito-item" data-index="${globalIndex}">
+                        <div class="requisito-header">
+                            <div class="requisito-text">${req.requisito}</div>
+                            <div>
+                                <span class="priority-badge priority-${req.np}">
+                                    NP${req.np}: ${priorityText}
+                                </span>
+                                <span class="score-display">${scoreValue} pts</span>
+                            </div>
+                        </div>
+                        <div class="estado-buttons">
+                            <button class="estado-btn btn-it ${estado === 'IT' ? 'active' : ''}" onclick="setEstado(${globalIndex}, 'IT')">
+                                IT<br><small>Implementado Total</small>
+                            </button>
+                            <button class="estado-btn btn-ip ${estado === 'IP' ? 'active' : ''}" onclick="setEstado(${globalIndex}, 'IP')">
+                                IP<br><small>Implementado Parcial</small>
+                            </button>
+                            <button class="estado-btn btn-ni ${estado === 'NI' ? 'active' : ''}" onclick="setEstado(${globalIndex}, 'NI')">
+                                NI<br><small>No Implementado</small>
+                            </button>
+                            <button class="estado-btn btn-na ${estado === 'NA' ? 'active' : ''}" onclick="setEstado(${globalIndex}, 'NA')">
+                                NA<br><small>No Aplica</small>
+                            </button>
+                        </div>
+                        <div class="observaciones-container">
+                            <label class="observaciones-label">Observaciones:</label>
+                            <textarea 
+                                class="observaciones-textarea" 
+                                placeholder="Agregue observaciones sobre este requisito (opcional)..."
+                                onchange="setObservacion(${globalIndex}, this.value)"
+                                onblur="guardarProgreso()"
+                            >${observacion}</textarea>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (currentSection !== '') {
+                html += '</div>';
+            }
+            
+            return html;
+        }
+        
+        function setEstado(index, estado) {
+            if (!evaluacion[index]) {
+                evaluacion[index] = {};
+            }
+            
+            evaluacion[index].estado = estado;
+            
+            const item = document.querySelector(`.requisito-item[data-index="${index}"]`);
+            if (item) {
+                const buttons = item.querySelectorAll('.estado-btn');
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                const activeBtn = Array.from(buttons).find(btn => 
+                    btn.textContent.includes(estado)
+                );
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+            }
+            
+            updateMetrics();
+            guardarProgreso();
+        }
+        
+        function setObservacion(index, observacion) {
+            if (!evaluacion[index]) {
+                evaluacion[index] = {};
+            }
+            
+            evaluacion[index].observacion = observacion;
+        }
+        
+        function calcularMetricas() {
+            let scoreTotal = 0;
+            let scoreMaxTotal = 0;
+            let scoreMaxAplicable = 0;
+            let itemsCompletados = 0;
+            let itemsTotal = requisitos.length;
+            
+            requisitos.forEach((req, index) => {
+                const data = evaluacion[index] || {};
+                const estado = data.estado;
+                const baseScore = SCORE_VALUES[req.np];
+                
+                scoreMaxTotal += baseScore;
+                
+                if (estado) {
+                    itemsCompletados++;
+                    
+                    if (estado !== 'NA') {
+                        const multiplier = ESTADO_MULTIPLIERS[estado];
+                        const score = baseScore * multiplier;
+                        scoreTotal += score;
+                        scoreMaxAplicable += baseScore;
+                    }
+                }
+            });
+            
+            const scorePercent = scoreMaxAplicable > 0 ? (scoreTotal / scoreMaxAplicable * 100) : 0;
+            
+            return {
+                scoreTotal: scoreTotal.toFixed(1),
+                scoreMax: scoreMaxTotal.toFixed(1),
+                scoreMaxAplicable: scoreMaxAplicable.toFixed(1),
+                scorePercent: scorePercent.toFixed(1),
+                itemsCompletados,
+                itemsTotal
+            };
+        }
+        
+        function updateMetrics() {
+            const metrics = calcularMetricas();
+            
+            document.getElementById('scoreTotal').textContent = metrics.scoreTotal;
+            document.getElementById('scoreMax').textContent = metrics.scoreMax;
+            document.getElementById('scorePercent').textContent = metrics.scorePercent + '%';
+            document.getElementById('itemsCompleted').textContent = 
+                `${metrics.itemsCompletados}/${metrics.itemsTotal}`;
+        }
+        
+        function guardarProgreso() {
+            localStorage.setItem('bpa_evaluacion', JSON.stringify(evaluacion));
+            localStorage.setItem('bpa_fecha', new Date().toISOString());
+        }
+        
+        function cargarProgreso() {
+            const saved = localStorage.getItem('bpa_evaluacion');
+            if (saved) {
+                evaluacion = JSON.parse(saved);
+            }
+        }
+        
+        function exportarCSV() {
+            const metrics = calcularMetricas();
+            
+            let csv = 'Hoja,Sección,Requisito,Prioridad,Estado,Observaciones,Score Base,Multiplier,Score Obtenido\n';
+            
+            requisitos.forEach((req, index) => {
+                const data = evaluacion[index] || {};
+                const estado = data.estado || '';
+                const observacion = (data.observacion || '').replace(/"/g, '""');
+                const baseScore = SCORE_VALUES[req.np];
+                const multiplier = estado && estado !== 'NA' ? ESTADO_MULTIPLIERS[estado] : 0;
+                const score = baseScore * multiplier;
+                
+                csv += `"${req.hoja}","${req.seccion}","${req.requisito}",${req.np},${estado},"${observacion}",${baseScore},${multiplier},${score}\n`;
+            });
+            
+            csv += '\n\nRESUMEN\n';
+            csv += `Score Total Obtenido,${metrics.scoreTotal}\n`;
+            csv += `Score Máximo Total,${metrics.scoreMax}\n`;
+            csv += `Score Máximo Aplicable,${metrics.scoreMaxAplicable}\n`;
+            csv += `Porcentaje de Cumplimiento,${metrics.scorePercent}%\n`;
+            csv += `Requisitos Evaluados,${metrics.itemsCompletados}/${metrics.itemsTotal}\n`;
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bpa_evaluacion_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        
+        function exportarExcel() {
+            if (typeof XLSX === 'undefined') {
+                alert('Error: No se pudo cargar la librería de Excel. Verificá tu conexión a internet.');
+                return;
+            }
+            
+            const metrics = calcularMetricas();
+            const wb = XLSX.utils.book_new();
+            
+            const datosEvaluacion = [];
+            datosEvaluacion.push(['EVALUACIÓN BPA - ' + new Date().toLocaleDateString()]);
+            datosEvaluacion.push([]);
+            datosEvaluacion.push(['Hoja', 'Sección', 'Requisito', 'Prioridad', 'Estado', 'Observaciones', 'Score Base', 'Multiplicador', 'Score Obtenido']);
+            
+            requisitos.forEach((req, index) => {
+                const data = evaluacion[index] || {};
+                const estado = data.estado || '';
+                const observacion = data.observacion || '';
+                const baseScore = SCORE_VALUES[req.np];
+                const multiplier = estado && estado !== 'NA' ? ESTADO_MULTIPLIERS[estado] : 0;
+                const score = baseScore * multiplier;
+                
+                datosEvaluacion.push([
+                    NOMBRES_COMPLETOS[req.hoja],
+                    req.seccion,
+                    req.requisito,
+                    'NP' + req.np,
+                    estado,
+                    observacion,
+                    baseScore,
+                    multiplier,
+                    score
+                ]);
+            });
+            
+            const ws1 = XLSX.utils.aoa_to_sheet(datosEvaluacion);
+            ws1['!cols'] = [
+                { wch: 35 }, { wch: 35 }, { wch: 60 }, { wch: 10 }, 
+                { wch: 8 }, { wch: 40 }, { wch: 12 }, { wch: 14 }, { wch: 14 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws1, 'Evaluación Completa');
+            
+            const datosResumen = [];
+            datosResumen.push(['RESUMEN DE LA EVALUACIÓN']);
+            datosResumen.push([]);
+            datosResumen.push(['Métrica', 'Valor']);
+            datosResumen.push(['Fecha de Evaluación', new Date().toLocaleDateString()]);
+            datosResumen.push(['Score Total Obtenido', metrics.scoreTotal]);
+            datosResumen.push(['Score Máximo Total', metrics.scoreMax]);
+            datosResumen.push(['Score Máximo Aplicable', metrics.scoreMaxAplicable]);
+            datosResumen.push(['Porcentaje de Cumplimiento', metrics.scorePercent + '%']);
+            datosResumen.push(['Requisitos Evaluados', metrics.itemsCompletados + '/' + metrics.itemsTotal]);
+            
+            const ws2 = XLSX.utils.aoa_to_sheet(datosResumen);
+            ws2['!cols'] = [{ wch: 30 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+            
+            const datosPorHoja = [];
+            datosPorHoja.push(['EVALUACIÓN POR HOJA']);
+            datosPorHoja.push([]);
+            datosPorHoja.push(['Hoja', 'Total Requisitos', 'Evaluados', 'Score Obtenido', 'Score Máximo', '% Cumplimiento']);
+            
+            HOJAS_ORDENADAS.forEach(hoja => {
+                const reqsHoja = requisitos.filter((r) => r.hoja === hoja);
+                let completados = 0;
+                let scoreHoja = 0;
+                let maxHoja = 0;
+                
+                reqsHoja.forEach((req) => {
+                    const globalIdx = requisitos.findIndex(r => r === req);
+                    const data = evaluacion[globalIdx] || {};
+                    const estado = data.estado;
+                    
+                    if (estado) completados++;
+                    
+                    const baseScore = SCORE_VALUES[req.np];
+                    maxHoja += baseScore;
+                    
+                    if (estado && estado !== 'NA') {
+                        const multiplier = ESTADO_MULTIPLIERS[estado];
+                        scoreHoja += baseScore * multiplier;
+                    }
+                });
+                
+                const porcentaje = maxHoja > 0 ? ((scoreHoja / maxHoja) * 100).toFixed(1) : 0;
+                
+                datosPorHoja.push([
+                    NOMBRES_COMPLETOS[hoja],
+                    reqsHoja.length,
+                    completados,
+                    scoreHoja.toFixed(1),
+                    maxHoja.toFixed(1),
+                    porcentaje + '%'
+                ]);
+            });
+            
+            const ws3 = XLSX.utils.aoa_to_sheet(datosPorHoja);
+            ws3['!cols'] = [
+                { wch: 40 }, { wch: 15 }, { wch: 15 }, 
+                { wch: 14 }, { wch: 14 }, { wch: 14 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws3, 'Por Hoja');
+            
+            XLSX.writeFile(wb, `bpa_evaluacion_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+        
+        function mostrarModalReset() {
+            document.getElementById('resetModal').style.display = 'block';
+        }
+        
+        function cerrarModalReset() {
+            document.getElementById('resetModal').style.display = 'none';
+        }
+        
+        function confirmarReset() {
+            localStorage.removeItem('bpa_evaluacion');
+            localStorage.removeItem('bpa_fecha');
+            evaluacion = {};
+            cerrarModalReset();
+            renderAccordion();
+            updateMetrics();
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('resetModal');
+            if (event.target == modal) {
+                cerrarModalReset();
+            }
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
