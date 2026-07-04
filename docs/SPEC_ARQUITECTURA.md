@@ -117,12 +117,26 @@ fact_evaluacion       grano: evaluación cerrada (score total, score×categoría
 | Analytics | Postgres schemas (como GANADATA) vs DuckDB/MotherDuck | escala real esperada, simplicidad |
 | Evidencia (fotos) | Supabase Storage + cola diferida | sync de binarios separado del sync de datos |
 
-## 6. Diseño visual — proceso (no estética todavía)
+## 6. Marca y diseño visual
 
-1. Decisión de marca: ¿continuidad GANADATA (verde #1B3B2F / gold #C8963E / cream) o
-   identidad nueva? — **decisión de Gaspar, previa a todo**.
-2. Dirección de arte: 3-4 direcciones visuales concretas (paleta/tipografía/tono) para
-   elegir — informadas por referentes agro del research.
+**DECIDIDO (2026-07-04): identidad NUEVA.** No es continuidad de GANADATA (aquello fue
+el piloto de un productor particular). Esta es una app para cualquier productor y el
+**comienzo de una marca paraguas para futuros desarrollos** — la identidad debe ser más
+amplia que "el checklist BPG": una marca de productos digitales para el agro que pueda
+albergar autodiagnóstico, capacitación, indicadores y lo que venga.
+
+Implicancias:
+- **Naming primero**: nombre propio, registrable (dominio .com/.ar disponible, sin
+  conflicto de marca en INPI clase software/agro), pronunciable en el campo, que no
+  encierre el producto en "BPA/BPG" (el instrumento es de la Red; la marca es nuestra).
+  "bpa-ganadero" es nombre de repo, no de marca.
+- Los tokens de GANADATA (verde/gold/cream) NO se heredan — referencia de lo que ya
+  se exploró, nada más.
+
+Proceso:
+1. Naming (shortlist + verificación de disponibilidad) → decide Gaspar.
+2. Dirección de arte: 3-4 direcciones visuales concretas (paleta/tipografía/tono/voz)
+   para elegir — informadas por referentes agro del research SOTA.
 3. Design tokens + componentes base ANTES de la primera pantalla.
 4. Restricciones duras: contraste AAA para sol directo, targets ≥ 48dp (uso con
    guantes), una decisión por pantalla, modo claro primero, tipografía grande.
