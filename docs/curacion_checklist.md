@@ -27,8 +27,8 @@ completo de los requisitos truncados.
 | 5 | "Los alambrados, cercos y tranqueras:" | construidos con materiales sin riesgo, sin salientes (púas, astillas, bisagras, bulones, clavos, tuercas), bordes redondeados | Feedlot ítem 4.13, p.19 |
 | 6 | "Los alambrados eléctricos:" | diseñados/instalados/mantenidos para impacto adecuado (aprendizaje por reflejo condicionado) + verificación periódica | Feedlot ítems 4.15-4.16, p.19 |
 | 7 | "El piso del corral:" | antideslizante, poco agresivo para pezuñas, sin pendiente o levemente positiva, sin salientes/pozos/charcos/piedras | Feedlot ítem 4.24, p.20 |
-| 8 | "Para conocer las características del suelo se basa en:" | cartas o mapas de suelos, análisis de laboratorio y/u observaciones a campo | ⚠️ **INFERIDO** (la guía Feedlot no desarrolla suelo por ser producción confinada) — **A VALIDAR con la Comisión / Guía General** |
-| 9 | "Respecto al riesgo de degradación del suelo se evalúan propiedades:" | propiedades físicas, químicas y biológicas | ⚠️ **INFERIDO** (tríada estándar de edafología) — **A VALIDAR** |
+| 8 | "Para conocer las características del suelo se basa en:" | imágenes satelitales, datos de muestreos previos, cartas de suelos, mapa topográfico e historia de manejo | ✅ **VALIDADO** — Guía General BPG-VC ítem 5.1 (2026-07-04, texto oficial reemplazó la inferencia inicial) |
+| 9 | "Respecto al riesgo de degradación del suelo se evalúan propiedades:" | propiedades físicas, químicas y biológicas | ✅ **VALIDADO** — Guía General BPG-VC ítem 5.2 (la inferencia coincidió textualmente) |
 | 10 | "Respecto a la calidad del agua se analizan los parámetros:" | parámetros microbiológicos, químicos y físicos | Feedlot ítem 6.7, p.24 |
 | 11 | "Respecto al estiércol y efluentes se considera:" | recolección, almacenamiento, acondicionamiento, tratamiento y posible uso, considerando clima y volúmenes estacionales | Feedlot ítems 7.4/7.2/7.7, p.25 |
 
@@ -36,9 +36,10 @@ Los NP originales de cada ítem se conservaron sin cambios.
 
 ## Pendiente
 
-- Validar con la Comisión los 2 ítems inferidos (#8 y #9) contra la **Guía General de
-  BPG para la Producción de Carne Vacuna** (documento citado en la guía Feedlot p.22,
-  que no tenemos en formato fuente — pedirlo).
+- ~~Validar los 2 ítems inferidos contra la Guía General~~ **RESUELTO 2026-07-04**: la
+  Guía General BPG-VC apareció en el archive del proyecto rag-bpg (ahora en
+  `docs/guia_general_bpg_vc.txt` + PDF); ambos ítems validados/corregidos con texto
+  oficial (5.1 y 5.2). Ya no hay completions inferidas — las 11 tienen fuente oficial.
 - Los datasets `data/requisitos_feedlot_v2022.json` (82 ítems) y
   `data/requisitos_transporte_comercializacion.json` (78 ítems) quedan extraídos con
   NP *propuesto* para cuando se decida sumar esas categorías.
