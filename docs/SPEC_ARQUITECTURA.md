@@ -1,8 +1,8 @@
 # SPEC de Arquitectura — BPA Ganadero
 
-**Versión:** 0.1 (borrador) — 2026-07-04
-**Estado:** dominio y modelo de datos definidos; elecciones de stack PENDIENTES del
-deep research SOTA (secciones marcadas ⏳).
+**Versión:** 0.2 — 2026-07-05
+**Estado:** dominio, modelo de datos y stack DECIDIDOS (research SOTA verificado).
+Pendientes: pricing PowerSync (⚠️ §5.2), validación instrumento con la Comisión.
 
 ---
 
@@ -108,14 +108,68 @@ fact_evaluacion       grano: evaluación cerrada (score total, score×categoría
 - Scoring canónico servidor: adaptar `calcular_score_bpg` de GANADATA 000058
   (versión final, no 000035) al grano evaluación-sesión.
 
-## 5. Decisiones de stack — ⏳ PENDIENTE deep research SOTA (en curso)
+## 5. Decisiones de stack — ✅ DECIDIDAS (2026-07-05, deep research verificado 3-0 salvo nota)
 
-| Decisión | Candidatos | Criterio de corte |
-|---|---|---|
-| Plataforma cliente | Expo/RN vs PWA (SQLite-WASM/OPFS) vs Capacitor | riesgo de evicción de datos en Android, cámara/GPS, distribución rural, gama media |
-| Sync engine | PowerSync / ElectricSQL / Zero / RxDB / WatermelonDB / Turso / outbox artesanal | fit Supabase+RLS, RN+SQLite, madurez producción, costo, mantenibilidad solo-founder |
-| Analytics | Postgres schemas (como GANADATA) vs DuckDB/MotherDuck | escala real esperada, simplicidad |
-| Evidencia (fotos) | Supabase Storage + cola diferida | sync de binarios separado del sync de datos |
+### 5.1 Plataforma cliente: **Expo / React Native con EAS dev builds** (PWA descartada)
+
+La PWA quedó **descartada por evidencia verificada**, no por preferencia:
+- El storage del navegador (IndexedDB/OPFS) es "best-effort" por defecto y **puede ser
+  desalojado bajo presión de disco** [3-0].
+- `navigator.storage.persist()` en Chrome/Android **no pregunta al usuario: auto-aprueba
+  o auto-deniega por heurísticas** (engagement, instalación) [3-0] — la persistencia no
+  es garantizable justo en nuestro peor caso: teléfono de gama media con poco disco y
+  semanas de evaluaciones sin sincronizar. Violación directa del axioma #3.
+- expo-sqlite es production-supported en Android/iOS [3-0]; su soporte web es alpha [2-0].
+
+Costo aceptado: build nativo vía EAS (los adapters SQLite nativos no corren en Expo Go
+[3-0] — se desarrolla con dev client, que es el camino profesional igual). Distribución:
+APK directo + Play Store.
+
+### 5.2 Sync engine: **PowerSync** (con outbox de agregados propio encima)
+
+Todo verificado 3-0 contra docs oficiales:
+- SQLite local embebido como store de lectura/escritura inmediata, **fuente de verdad
+  local** — exactamente el axioma #1.
+- Cola de subida (upload queue) automática con conectividad intermitente; los writes
+  llegan a Postgres **vía supabase-js, con RLS como capa de seguridad autoritativa**
+  (no bypassea nuestro patrón RLS heredado de GANADATA).
+- **Sync Streams**: sync parcial por usuario/tenant (YAML tipo SQL) — cada productor
+  baja solo sus establecimientos.
+- Integración Supabase oficial y documentada; SDK React Native oficial.
+- El `uploadData()` es nuestro: ahí implementamos la subida de la **Evaluación como
+  documento-agregado** (transacción completa), no fila suelta.
+
+Descartes fundamentados:
+- **ElectricSQL**: motor de *read-path* solamente; el write-path habría que armarlo a
+  mano [3-0]. Componible, no solución completa.
+- **RxDB**: viable (plugin Supabase oficial, checkpoints resumibles aptos para semanas
+  offline [3-0]) pero **impone convenciones de schema en Postgres** (PK text,
+  `_modified`, soft-deletes booleanos) que contaminan el lado Kimball o exigen un
+  schema espejo [3-0]. Segunda opción si PowerSync falla.
+- **Zero (Rocicorp)**: arquitectura web-first (⚠️ no verificado — murió en el corte del
+  research; descartado además por perfil).
+- Contexto que justifica elegir lo más productivo-probado: **la propia doc de Expo
+  (mid-2026) advierte que el tooling local-first es inmaduro** y que el desarrollador
+  deberá resolver problemas que las herramientas aún no resuelven [3-0].
+
+⚠️ **Pendiente de verificar antes de comprometer**: pricing/licencia de PowerSync Cloud
+vs self-hosted a jul-2026 (no llegó a verificarse). **Plan B documentado**: outbox
+artesanal + upsert idempotente (patrón ya esbozado en ganadata-mobile) — la arquitectura
+de dominio (UUIDs cliente, documento-agregado) es idéntica con o sin PowerSync, así que
+el switch no toca el modelo.
+
+### 5.3 Analytics: **Postgres/Supabase con schemas Kimball** (convención GANADATA)
+
+A la escala realista del producto (10.000 evaluaciones ≈ 3,2M filas en fact_respuesta)
+Postgres dimensional sobra. pg_duckdb/MotherDuck quedan anotados como camino de
+escalado futuro (⚠️ claims no verificados — el research se cortó ahí) para cuando la
+Red quiera analytics agregado nacional.
+
+### 5.4 Evidencia (fotos): **Supabase Storage + cola de binarios separada**
+
+Cola diferida independiente del sync de datos (compresión client-side, opción
+solo-WiFi). Una evaluación puede cerrar y sincronizar con evidencias aún pendientes
+de subida (estado visible por evidencia).
 
 ## 6. Marca y diseño visual
 
@@ -151,7 +205,7 @@ infra mobile (client SQLite/auth/CI), patrón outbox, docs SENASA, caso Don Aqui
 | Riesgo | Mitigación |
 |---|---|
 | Instrumento diverge del oficial (321 Excel vs 187 feedlot vs guía) | dim_instrumento_version + validación con la Comisión antes del seed final |
-| Evicción de storage en Android (si PWA) | ⏳ research; si el riesgo es real → app nativa |
+| Evicción de storage en Android (si PWA) | ✅ RESUELTO: riesgo confirmado 3-0 → app nativa (§5.1) |
 | Sync engine inmaduro/abandonado | preferir aburrido y probado; fallback outbox artesanal |
 | Scope creep (trazabilidad, RFID, chat) | MVP = autodiagnóstico; el resto es roadmap |
 | Fotos saturan sync rural | cola de binarios separada, compresión, sync solo-WiFi opcional |
