@@ -26,6 +26,12 @@ jobs:
           node scripts/gen_instrumento_ts.mjs
           git diff --exit-code -- app/src/instrumento \
             || (echo "El módulo del instrumento quedó desincronizado. Corré: npm run gen:instrumento" && exit 1)
+      - name: Theme generado sincronizado con design/tokens.json
+        working-directory: ${{ github.workspace }}
+        run: |
+          node scripts/gen_theme_ts.mjs
+          git diff --exit-code -- app/src/theme/tokens.ts \
+            || (echo "El theme quedó desincronizado con tokens.json. Corré: npm run gen:theme" && exit 1)
       - run: npm run typecheck
       - run: npm test
 
