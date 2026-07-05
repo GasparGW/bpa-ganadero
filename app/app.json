@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "BPA Ganadero",
+    "slug": "bpa-ganadero",
+    "scheme": "bpaganadero",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "primaryColor": "#173F2C",
+    "backgroundColor": "#FBFAF7",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.redbpa.ganadero"
+    },
+    "android": {
+      "package": "org.redbpa.ganadero",
+      "adaptiveIcon": {
+        "backgroundColor": "#173F2C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
