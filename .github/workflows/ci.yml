@@ -20,6 +20,12 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+      - name: Instrumento empaquetado sincronizado con data/
+        working-directory: ${{ github.workspace }}
+        run: |
+          node scripts/gen_instrumento_ts.mjs
+          git diff --exit-code -- app/src/instrumento \
+            || (echo "El módulo del instrumento quedó desincronizado. Corré: npm run gen:instrumento" && exit 1)
       - run: npm run typecheck
       - run: npm test
 

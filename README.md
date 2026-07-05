@@ -5,7 +5,7 @@ Plataforma para autodiagnóstico e implementación de Buenas Prácticas Agropecu
 ## Contexto
 
 En Argentina no existe ninguna herramienta que permita al productor ganadero:
-- Autoevaluarse contra el estándar BPA (321 requisitos, 14 categorías)
+- Autoevaluarse contra el estándar BPA (14 categorías; 321 requisitos del checklist original, 320 tras curación — ítem partido fusionado)
 - Generar un plan de implementación priorizado desde el diagnóstico
 - Conectar ese diagnóstico con el proceso de certificación formal (IRAM 14110, GlobalGAP, Aapresid)
 
@@ -17,7 +17,8 @@ Las auditorías actuales son papel/Excel. La única app oficial (SAGyP+COVIAR) e
 
 - Cliente Expo/RN scaffoldeado (SDK 57, TS strict).
 - Scoring oficial implementado en 3 capas (Python ref · TS cliente · SQL servidor),
-  las tres validadas contra los 8 golden cases de `data/golden_scoring.json`.
+  las tres con aritmética entera exacta y una única regla de redondeo, validadas
+  contra los 9 golden cases de `data/golden_scoring.json` (incluye un empate `.xx5`).
 - Base de datos: migraciones Kimball + OLTP + RLS multi-tenant, instrumento
   canónico (320 requisitos) seedeado. Aislamiento RLS verificado bajo rol no
   privilegiado.

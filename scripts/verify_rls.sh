@@ -35,7 +35,16 @@ echo "▸ Preparando rol no privilegiado app_user (como Supabase 'authenticated'
 "
 
 echo "▸ Ejecutando escenario de aislamiento bajo RLS…"
+# El tenant se fija EXCLUSIVAMENTE por el claim JWT (request.jwt.claims) — el mismo
+# path que producción (Supabase inyecta el JWT en esa GUC por request). Así el test
+# ejercita current_tenant() de verdad y no un atajo que prod no usa.
 "${PSQL[@]}" <<'SQL'
+-- helper: simula el JWT que Supabase pone en request.jwt.claims para un tenant.
+create or replace function pg_temp.como_tenant(t uuid) returns void
+language sql as $f$
+  select set_config('request.jwt.claims', json_build_object('tenant_id', t::text)::text, true);
+$f$;
+
 do $$
 declare
   tA uuid := '11111111-1111-1111-1111-111111111111';
@@ -44,12 +53,30 @@ declare
 begin
   set local role app_user;
 
-  -- Tenant A crea un establecimiento.
-  perform set_config('app.tenant_id', tA::text, true);
+  -- Fail-closed: SIN claim JWT, current_tenant() es NULL y no se ve nada.
+  perform set_config('request.jwt.claims', '', true);
+  select count(*) into visibles from app.establecimiento;
+  if visibles <> 0 then
+    raise exception 'FAIL: sin JWT se ven % filas (esperado 0, fail-closed)', visibles;
+  end if;
+  raise notice 'PASS: sin claim JWT no se ve nada (fail-closed)';
+
+  -- La GUC app.tenant_id (fallback viejo) NO debe otorgar acceso: fue eliminada.
+  perform set_config('app.tenant_id', tA::text, true);   -- seteable por el cliente…
+  perform set_config('request.jwt.claims', '', true);    -- …pero sin JWT no alcanza.
+  begin
+    insert into app.establecimiento (tenant_id, nombre) values (tA, 'Via GUC');
+    raise exception 'FAIL: la GUC app.tenant_id todavía otorga acceso (fallback vivo)';
+  exception when check_violation or insufficient_privilege then
+    raise notice 'PASS: la GUC app.tenant_id ya no es un fallback (sin JWT, RLS bloquea)';
+  end;
+
+  -- Tenant A crea un establecimiento (identificado por su JWT).
+  perform pg_temp.como_tenant(tA);
   insert into app.establecimiento (tenant_id, nombre) values (tA, 'Estancia A');
 
   -- Tenant B crea el suyo y NO debe ver el de A.
-  perform set_config('app.tenant_id', tB::text, true);
+  perform pg_temp.como_tenant(tB);
   insert into app.establecimiento (tenant_id, nombre) values (tB, 'Estancia B');
   select count(*) into visibles from app.establecimiento;
   if visibles <> 1 then
@@ -69,7 +96,7 @@ begin
   end;
 
   -- Volviendo a A, ve sólo lo suyo.
-  perform set_config('app.tenant_id', tA::text, true);
+  perform pg_temp.como_tenant(tA);
   select count(*) into visibles from app.establecimiento;
   if visibles <> 1 then
     raise exception 'FAIL: tenant A ve % filas (esperado 1)', visibles;
@@ -77,8 +104,8 @@ begin
   raise notice 'PASS: A sólo ve lo suyo';
 
   reset role;
-  raise notice 'RLS multi-tenant: AISLAMIENTO VERIFICADO';
+  raise notice 'RLS multi-tenant: AISLAMIENTO VERIFICADO (path JWT)';
 end $$;
 SQL
 
-echo "✓ RLS multi-tenant: OK (aislamiento real bajo rol no privilegiado)."
+echo "✓ RLS multi-tenant: OK (aislamiento real bajo rol no privilegiado, path JWT)."

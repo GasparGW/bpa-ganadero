@@ -40,6 +40,12 @@ CODIGOS_CATEGORIA = {
 PESOS_NP = {1: 10.0, 2: 5.0, 3: 2.5}
 MULTIPLICADORES = {"IT": 1.0, "IP": 0.5, "NI": 0.0}  # NA: excluido del denominador
 
+# Aritmética exacta: pesos escalados ×4 (enteros 40/20/10) y multiplicadores de
+# numerador en medios (IT=2, IP=1, NI=0). Así numerador y denominador se acumulan
+# como enteros sin error float, y las tres capas (Python/TS/SQL) coinciden bit a bit.
+PESO_X4 = {1: 40, 2: 20, 3: 10}
+MULT_NUM = {"IT": 2, "IP": 1, "NI": 0}  # contribución numerador x4 = (peso_x4 // 2) * MULT_NUM
+
 
 def extraer_requisitos(html_path: Path) -> list[dict]:
     html = html_path.read_text(encoding="utf-8")
@@ -93,26 +99,45 @@ def construir_instrumento(raw: list[dict]) -> dict:
     }
 
 
+def _limpio(x: float):
+    """Emite int cuando el valor es entero (2445.0 → 2445), si no float."""
+    return int(x) if x == int(x) else x
+
+
 def score(respuestas: dict[str, str], reqs: list[dict]) -> dict:
-    """Implementación de referencia del scoring oficial (casos dorados)."""
+    """Implementación de referencia del scoring oficial (casos dorados).
+
+    Aritmética entera exacta + redondeo MITAD HACIA ARRIBA a 2 decimales, idéntica
+    a la del cliente TS (app/src/domain/scoring.ts) y la función SQL del servidor.
+    NO usa round() de Python (banker's/mitad-al-par), que divergía en los empates.
+    """
     por_req = {r["codigo"]: r for r in reqs}
-    num = den = 0.0
+    num_x4 = den_x4 = 0
     for codigo, estado in respuestas.items():
-        r = por_req[codigo]
+        if estado not in ("IT", "IP", "NI", "NA"):
+            raise ValueError(f"Estado inválido para {codigo}: {estado}")
         if estado == "NA":
             continue
-        num += r["peso"] * MULTIPLICADORES[estado]
-        den += r["peso"]
+        px4 = PESO_X4[por_req[codigo]["np"]]
+        num_x4 += (px4 // 2) * MULT_NUM[estado]
+        den_x4 += px4
+    if den_x4 == 0:
+        pct = None
+    else:
+        # floor(num_x4/den_x4 * 100 * 100 + 0.5) con enteros: mitad hacia arriba
+        pct = _limpio(((2 * num_x4 * 10000 + den_x4) // (2 * den_x4)) / 100)
     return {
-        "puntos_obtenidos": round(num, 2),
-        "maximo_aplicable": round(den, 2),
-        "score_pct": round(num / den * 100, 2) if den else None,
+        "puntos_obtenidos": _limpio(num_x4 / 4),
+        "maximo_aplicable": _limpio(den_x4 / 4),
+        "score_pct": pct,
     }
 
 
 def construir_golden_cases(reqs: list[dict]) -> dict:
     todos = [r["codigo"] for r in reqs]
     np1 = [r["codigo"] for r in reqs if r["np"] == 1]
+    np2 = [r["codigo"] for r in reqs if r["np"] == 2]
+    np3 = [r["codigo"] for r in reqs if r["np"] == 3]
     san = [r["codigo"] for r in reqs if r["categoria_codigo"] == "SAN"]
     casos = []
 
@@ -145,10 +170,15 @@ def construir_golden_cases(reqs: list[dict]) -> dict:
          "1 requisito de cada NP en IT + 1 de cada NP en NI → "
          "score = 17.5/35 = 50%",
          {np1[0]: "IT", np1[1]: "NI",
-          [r["codigo"] for r in reqs if r["np"] == 2][0]: "IT",
-          [r["codigo"] for r in reqs if r["np"] == 2][1]: "NI",
-          [r["codigo"] for r in reqs if r["np"] == 3][0]: "IT",
-          [r["codigo"] for r in reqs if r["np"] == 3][1]: "NI"})
+          np2[0]: "IT", np2[1]: "NI",
+          np3[0]: "IT", np3[1]: "NI"})
+    caso("empate_redondeo",
+         "Empate exacto a .xx5: 1.25/40 = 3.125% → 3.13 con redondeo mitad hacia "
+         "arriba (canónico, = round(numeric) de Postgres). Distingue la regla única "
+         "del banker's/mitad-al-par de round() de Python (que daría 3.12). Ningún "
+         "otro golden cae en un empate: este es el que falsa el contrato de 3 capas.",
+         {np1[0]: "NI", np1[1]: "NI", np1[2]: "NI",
+          np2[0]: "NI", np3[0]: "IP", np3[1]: "NI"})
     return {
         "descripcion": "Casos dorados de scoring — cliente y servidor deben reproducir "
                        "exactamente estos resultados. Generados por la implementación "

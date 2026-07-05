@@ -24,6 +24,40 @@ create unique index instrumento_version_una_vigente
   on bpg.instrumento_version (instrumento)
   where vigente_hasta is null;
 
+-- El índice de arriba garantiza "a lo sumo una vigente por instrumento". Este
+-- constraint trigger agrega "al menos una": mientras el instrumento tenga alguna
+-- versión, exactamente una debe estar vigente (vigente_hasta null). Es DEFERRABLE
+-- INITIALLY DEFERRED para permitir la transición v_n → v_{n+1} en una sola
+-- transacción (cerrar la vigente e insertar la nueva) sin violar el invariante en
+-- el paso intermedio. Si se borran TODAS las versiones del instrumento, se permite
+-- (el instrumento deja de existir; no hay nada que deba estar vigente).
+create or replace function bpg.verificar_version_vigente()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_instrumento text := coalesce(new.instrumento, old.instrumento);
+  v_total    int;
+  v_vigentes int;
+begin
+  select count(*) filter (where true),
+         count(*) filter (where vigente_hasta is null)
+    into v_total, v_vigentes
+  from bpg.instrumento_version
+  where instrumento = v_instrumento;
+
+  if v_total > 0 and v_vigentes <> 1 then
+    raise exception 'El instrumento % debe tener exactamente una versión vigente, tiene %',
+      v_instrumento, v_vigentes;
+  end if;
+  return null;
+end $$;
+
+create constraint trigger t_version_vigente_unica
+  after insert or update or delete on bpg.instrumento_version
+  deferrable initially deferred
+  for each row execute function bpg.verificar_version_vigente();
+
 create table bpg.categoria (
   instrumento_version_id uuid   not null references bpg.instrumento_version(id) on delete cascade,
   codigo                 text   not null,               -- 'SAN'

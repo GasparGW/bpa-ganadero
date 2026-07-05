@@ -5,8 +5,14 @@
 -- instrumento (bpg.*) es referencia compartida: legible por cualquier usuario
 -- autenticado, no escribible desde el cliente.
 --
--- current_tenant() lee el claim tenant_id del JWT (producción, PowerSync/Supabase)
--- con fallback a la GUC app.tenant_id (para tests locales via `SET app.tenant_id`).
+-- current_tenant() lee EXCLUSIVAMENTE el claim tenant_id del JWT (el mismo path en
+-- producción y en tests). Sin fallback a GUC: una GUC de sesión (p. ej. app.tenant_id)
+-- es seteable por el cliente y sería suplantable, además de arrastrarse entre requests
+-- en poolers. Si no hay claim → devuelve NULL → RLS no matchea ninguna fila (fail-closed).
+--
+-- Requisito de producción: el tenant_id debe estar en el JWT. En Supabase se inyecta
+-- con un Custom Access Token Hook (o app_metadata propagado al token). Esto lo maneja
+-- la configuración del proyecto, no una migración.
 
 create extension if not exists pgcrypto;   -- gen_random_uuid()
 
@@ -18,10 +24,7 @@ returns uuid
 language sql
 stable
 as $$
-  select coalesce(
-    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'tenant_id',
-    nullif(current_setting('app.tenant_id', true), '')
-  )::uuid
+  select (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'tenant_id')::uuid
 $$;
 
 -- Trigger genérico de auditoría: mantiene actualizado_en en cada UPDATE.

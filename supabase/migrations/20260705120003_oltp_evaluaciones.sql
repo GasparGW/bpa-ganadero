@@ -44,9 +44,11 @@ create table app.evaluacion (
   creado_por             uuid references app.persona(id),
   creado_en              timestamptz not null default now(),
   actualizado_en         timestamptz not null default now(),
-  -- Una evaluación cerrada debe tener fecha de cierre y score; una abierta no.
+  -- Una evaluación cerrada tiene fecha de cierre; una abierta no. score_pct puede
+  -- ser NULL en una cerrada legítima: si todo lo respondido es NA (o no hay nada
+  -- aplicable), el denominador es 0 y el score es indefinido — no debe impedir cerrar.
   constraint cierre_coherente check (
-    (estado = 'cerrada' and cerrada_en is not null and score_pct is not null)
+    (estado = 'cerrada' and cerrada_en is not null)
     or (estado = 'abierta' and cerrada_en is null)
   )
 );
@@ -62,7 +64,9 @@ create table app.respuesta (
   estado          text not null check (estado in ('IT', 'IP', 'NI', 'NA')),
   observacion     text,
   actualizado_en  timestamptz not null default now(),
-  unique (evaluacion_id, requisito_codigo)
+  -- tenant_id va en la unicidad para que el aislamiento sea explícito y encabece el
+  -- índice (aunque evaluacion_id ya es único global, un solo tenant por evaluación).
+  unique (tenant_id, evaluacion_id, requisito_codigo)
 );
 
 -- ---------------------------------------------------------------------- evidencia
@@ -89,6 +93,48 @@ create trigger t_evaluacion_upd before update on app.evaluacion
   for each row execute function app.tocar_actualizado_en();
 create trigger t_respuesta_upd before update on app.respuesta
   for each row execute function app.tocar_actualizado_en();
+
+-- ------------------------------------------------- validación de integridad de respuesta
+-- requisito_codigo es clave natural, no FK (bpg.requisito se identifica por
+-- (instrumento_version_id, codigo) y la respuesta no lleva la versión). Un trigger
+-- valida en escritura: (1) el código EXISTE en la versión del instrumento anclada a
+-- la evaluación —evita respuestas huérfanas que sincronizan y dejan la evaluación
+-- imposible de cerrar—, y (2) la respuesta pertenece al mismo tenant que su
+-- evaluación (defensa en profundidad; también cubre el service_role que saltea RLS).
+create or replace function app.validar_respuesta()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_version uuid;
+  v_tenant  uuid;
+begin
+  select instrumento_version_id, tenant_id into v_version, v_tenant
+  from app.evaluacion where id = new.evaluacion_id;
+
+  if v_version is null then
+    raise exception 'Respuesta sobre evaluación inexistente o de otro tenant: %',
+      new.evaluacion_id;
+  end if;
+
+  if new.tenant_id is distinct from v_tenant then
+    raise exception 'tenant_id de la respuesta (%) no coincide con el de su evaluación (%)',
+      new.tenant_id, v_tenant;
+  end if;
+
+  if not exists (
+    select 1 from bpg.requisito r
+    where r.instrumento_version_id = v_version and r.codigo = new.requisito_codigo
+  ) then
+    raise exception 'Requisito % no existe en la versión del instrumento de la evaluación',
+      new.requisito_codigo;
+  end if;
+
+  return new;
+end $$;
+
+create trigger t_respuesta_validar before insert or update on app.respuesta
+  for each row execute function app.validar_respuesta();
 
 -- ------------------------------------------------------------------------- RLS
 -- Aislamiento por tenant: cada fila sólo es visible/mutable por su cuenta.

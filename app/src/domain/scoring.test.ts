@@ -1,7 +1,9 @@
 /**
- * Golden tests del scoring. Cargan el instrumento canónico y los 8 casos dorados
- * desde `data/` (fuente de verdad compartida por las 3 implementaciones) y exigen
- * coincidencia exacta. Si esto falla, el scoring del cliente divergió del oficial.
+ * Golden tests del scoring. Cargan el instrumento EMPAQUETADO (el mismo módulo TS
+ * que consume la app en runtime) y los golden cases desde `data/`, y exigen
+ * coincidencia exacta. Al testear el instrumento bundleado —no el JSON de `data/`—
+ * se garantiza que lo que se valida es exactamente lo que se envía en la app.
+ * Si esto falla, el scoring del cliente divergió del oficial.
  */
 
 import { readFileSync } from 'node:fs';
@@ -9,15 +11,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
-import { calcularScore, indexarRequisitos } from './scoring';
-import type { Requisito, ResultadoScore, Respuestas } from './types';
+import { calcularScore } from './scoring';
+import type { ResultadoScore, Respuestas } from './types';
+import { INDICE_REQUISITOS, INSTRUMENTO_META, REQUISITOS } from '../instrumento';
 
 const aquí = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(aquí, '../../../data');
 
-interface Instrumento {
-  requisitos: Requisito[];
-}
 interface CasoGolden {
   nombre: string;
   descripcion: string;
@@ -30,28 +30,37 @@ interface Golden {
   casos: CasoGolden[];
 }
 
-const instrumento: Instrumento = JSON.parse(
-  readFileSync(resolve(dataDir, 'instrumento/bpg-vc_2026.07.json'), 'utf8'),
-);
 const golden: Golden = JSON.parse(
   readFileSync(resolve(dataDir, 'golden_scoring.json'), 'utf8'),
 );
 
-const indice = indexarRequisitos(instrumento.requisitos);
-
 describe('scoring BPG-VC contra golden cases', () => {
-  it('el instrumento tiene 320 requisitos', () => {
-    expect(instrumento.requisitos).toHaveLength(320);
+  it('el instrumento empaquetado tiene 320 requisitos', () => {
+    expect(REQUISITOS).toHaveLength(320);
+    expect(INSTRUMENTO_META.total_requisitos).toBe(320);
+  });
+
+  it('el instrumento empaquetado corresponde a la versión del golden', () => {
+    expect(INSTRUMENTO_META.version).toBe(golden.version_instrumento);
   });
 
   for (const caso of golden.casos) {
     it(`${caso.nombre}: ${caso.descripcion}`, () => {
-      const resultado = calcularScore(caso.respuestas, indice);
+      const resultado = calcularScore(caso.respuestas, INDICE_REQUISITOS);
       expect(resultado).toEqual(caso.esperado);
     });
   }
 
   it('rechaza respuestas sobre un código inexistente', () => {
-    expect(() => calcularScore({ 'XXX-999': 'IT' }, indice)).toThrow(/desconocido/);
+    expect(() => calcularScore({ 'XXX-999': 'IT' }, INDICE_REQUISITOS)).toThrow(
+      /desconocido/,
+    );
+  });
+
+  it('rechaza un estado inválido (payload corrupto de sync)', () => {
+    const codigo = REQUISITOS[0].codigo;
+    expect(() => calcularScore({ [codigo]: 'XX' as never }, INDICE_REQUISITOS)).toThrow(
+      /inválido/,
+    );
   });
 });

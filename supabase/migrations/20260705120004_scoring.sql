@@ -41,21 +41,31 @@ begin
     raise exception 'Respuesta sobre requisito desconocido: %', v_codigo_desconocido;
   end if;
 
+  -- Aritmética ENTERA exacta, idéntica al cliente TS y a la referencia Python:
+  -- peso escalado ×4 (40/20/10) y numerador en medios (IT=2, IP=1, NI=0), de modo
+  -- que num_x4 y den_x4 son enteros sin error de representación. El porcentaje se
+  -- redondea a 2 decimales MITAD HACIA ARRIBA con división entera (floor), no con
+  -- round() — así no dependemos de la semántica de round(numeric)/escala de división.
   return query
   with aplicable as (
-    select r.peso,
-           case re.estado when 'IT' then 1.0 when 'IP' then 0.5 when 'NI' then 0.0 end as mult
+    select (r.peso * 4)::int as peso_x4,
+           case re.estado when 'IT' then 2 when 'IP' then 1 when 'NI' then 0 end as mult_num
     from jsonb_each_text(p_respuestas) as re(codigo, estado)
     join bpg.requisito r
       on r.instrumento_version_id = p_instrumento_version_id and r.codigo = re.codigo
     where re.estado <> 'NA'
+  ),
+  sumas as (
+    select coalesce(sum((peso_x4 / 2) * mult_num), 0)::bigint as num_x4,
+           coalesce(sum(peso_x4), 0)::bigint as den_x4
+    from aplicable
   )
   select
-    round(coalesce(sum(a.peso * a.mult), 0), 2)::numeric,
-    round(coalesce(sum(a.peso), 0), 2)::numeric,
-    case when coalesce(sum(a.peso), 0) = 0 then null
-         else round(sum(a.peso * a.mult) / sum(a.peso) * 100, 2) end::numeric
-  from aplicable a;
+    (num_x4 / 4.0)::numeric,
+    (den_x4 / 4.0)::numeric,
+    case when den_x4 = 0 then null
+         else (((2 * num_x4 * 10000 + den_x4) / (2 * den_x4)) / 100.0) end::numeric
+  from sumas;
 end $$;
 
 -- Score de una evaluación concreta: arma el jsonb desde sus respuestas y puntúa.

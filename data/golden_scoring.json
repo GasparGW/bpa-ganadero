@@ -329,9 +329,9 @@
         "BIE-025": "IT"
       },
       "esperado": {
-        "puntos_obtenidos": 2445.0,
-        "maximo_aplicable": 2445.0,
-        "score_pct": 100.0
+        "puntos_obtenidos": 2445,
+        "maximo_aplicable": 2445,
+        "score_pct": 100
       }
     },
     {
@@ -660,9 +660,9 @@
         "BIE-025": "NI"
       },
       "esperado": {
-        "puntos_obtenidos": 0.0,
-        "maximo_aplicable": 2445.0,
-        "score_pct": 0.0
+        "puntos_obtenidos": 0,
+        "maximo_aplicable": 2445,
+        "score_pct": 0
       }
     },
     {
@@ -992,8 +992,8 @@
       },
       "esperado": {
         "puntos_obtenidos": 1222.5,
-        "maximo_aplicable": 2445.0,
-        "score_pct": 50.0
+        "maximo_aplicable": 2445,
+        "score_pct": 50
       }
     },
     {
@@ -1322,8 +1322,8 @@
         "BIE-025": "NA"
       },
       "esperado": {
-        "puntos_obtenidos": 0.0,
-        "maximo_aplicable": 0.0,
+        "puntos_obtenidos": 0,
+        "maximo_aplicable": 0,
         "score_pct": null
       }
     },
@@ -1337,9 +1337,9 @@
         "ORG-006": "NA"
       },
       "esperado": {
-        "puntos_obtenidos": 25.0,
-        "maximo_aplicable": 25.0,
-        "score_pct": 100.0
+        "puntos_obtenidos": 25,
+        "maximo_aplicable": 25,
+        "score_pct": 100
       }
     },
     {
@@ -1455,8 +1455,25 @@
       },
       "esperado": {
         "puntos_obtenidos": 17.5,
-        "maximo_aplicable": 35.0,
-        "score_pct": 50.0
+        "maximo_aplicable": 35,
+        "score_pct": 50
+      }
+    },
+    {
+      "nombre": "empate_redondeo",
+      "descripcion": "Empate exacto a .xx5: 1.25/40 = 3.125% → 3.13 con redondeo mitad hacia arriba (canónico, = round(numeric) de Postgres). Distingue la regla única del banker's/mitad-al-par de round() de Python (que daría 3.12). Ningún otro golden cae en un empate: este es el que falsa el contrato de 3 capas.",
+      "respuestas": {
+        "ORG-001": "NI",
+        "ORG-002": "NI",
+        "ORG-003": "NI",
+        "ORG-005": "NI",
+        "ORG-006": "IP",
+        "ORG-009": "NI"
+      },
+      "esperado": {
+        "puntos_obtenidos": 1.25,
+        "maximo_aplicable": 40,
+        "score_pct": 3.13
       }
     }
   ]

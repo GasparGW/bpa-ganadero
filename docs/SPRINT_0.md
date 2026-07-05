@@ -64,15 +64,48 @@ Seed generado (determinista) desde el JSON canónico:
 
 | Capa | Cómo | Resultado |
 |---|---|---|
-| Python (referencia) | `scripts/build_instrumento.py` | genera los 8 golden cases |
-| TS (cliente) | `cd app && npm test` | **10/10** (8 golden + conteo + fail-loud) |
-| SQL (servidor) | `bash scripts/verify_sql_scoring.sh` | **8/8** golden + conteo 320 |
-| RLS multi-tenant | `bash scripts/verify_rls.sh` | aislamiento real verificado |
+| Python (referencia) | `scripts/build_instrumento.py` | genera los 9 golden cases |
+| TS (cliente) | `cd app && npm test` | **13/13** (9 golden + conteo + versión + fail-loud x2) |
+| SQL (servidor) | `bash scripts/verify_sql_scoring.sh` | **9/9** golden + conteo 320 + ciclo de vida |
+| RLS multi-tenant | `bash scripts/verify_rls.sh` | aislamiento real verificado (path JWT) |
 | Typecheck | `cd app && npm run typecheck` | sin errores (`strict`) |
 
 **Las tres implementaciones del scoring coinciden exactamente** sobre la misma
-referencia (`data/golden_scoring.json`). Cualquier cambio futuro que las haga
-divergir rompe CI.
+referencia (`data/golden_scoring.json`), ahora por construcción: las tres hacen
+**aritmética entera exacta** (pesos ×4, numerador en medios) con **una única regla
+de redondeo** (mitad hacia arriba a 2 decimales). El golden `empate_redondeo`
+(1.25/40 = 3.125% → 3.13) cae exactamente en un empate y falsa el contrato: si
+alguna capa volviera a divergir (float, banker's, truncado), rompe CI.
+
+## Endurecimiento post-ciclo adversarial (2026-07-05)
+
+Un ciclo adversarial sobre las fundaciones encontró cinco P1 (dos afirmaciones del
+"verde" original no se sostenían). Corregidos y verificados:
+
+1. **Scoring divergente entre capas.** El cliente TS redondeaba sobre `float64`
+   (mitad-arriba) y la referencia Python usaba banker's; ambos divergían del
+   `numeric` exacto de SQL en los empates. Unificado a aritmética entera exacta +
+   regla única en las tres capas. Antes ningún golden caía en un empate (lo
+   enmascaraba); ahora `empate_redondeo` lo cubre.
+2. **Instrumento no cargable en runtime RN.** Sólo el test lo leía vía `node:fs`.
+   Ahora se empaqueta como módulo TS tipado dentro de `app/src/instrumento/`
+   (generado por `scripts/gen_instrumento_ts.mjs`), con loader de runtime. El test
+   valida el instrumento **empaquetado**: lo que se testea es lo que se envía.
+3. **Evaluación todo-NA imposible de cerrar.** El CHECK `cierre_coherente` exigía
+   `score_pct not null`; una evaluación sin nada aplicable (denominador 0) tiene
+   score indefinido y quedaba trabada. El CHECK ya no lo exige.
+4. **Código de respuesta huérfano.** `respuesta.requisito_codigo` no tenía
+   validación; un código inexistente sincronizaba y dejaba la evaluación
+   un-closeable. Trigger `app.validar_respuesta()` valida el código contra la
+   versión anclada (y, de paso, la consistencia de tenant).
+5. **RLS con fallback GUC suplantable.** `current_tenant()` caía a una GUC seteable
+   por el cliente. Ahora lee **exclusivamente** el claim JWT (mismo path que
+   producción); sin claim, fail-closed. `verify_rls.sh` ejercita ese path y prueba
+   que la GUC vieja ya no otorga acceso.
+
+Higiene aplicada: se quitó `newArchEnabled` (redundante, New Arch es default en SDK
+57), el bloque `web` (sin `react-native-web`, era config muerta), el `LICENSE` del
+template Expo (atribuía copyright a Expo) y el `AGENTS.md` residual.
 
 ---
 

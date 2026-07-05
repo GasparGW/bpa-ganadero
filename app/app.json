@@ -9,7 +9,6 @@
     "userInterfaceStyle": "light",
     "primaryColor": "#173F2C",
     "backgroundColor": "#FBFAF7",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.redbpa.ganadero"
@@ -23,9 +22,6 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }
