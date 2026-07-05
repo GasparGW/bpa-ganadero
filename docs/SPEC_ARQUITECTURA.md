@@ -2,7 +2,7 @@
 
 **Versión:** 0.2 — 2026-07-05
 **Estado:** dominio, modelo de datos y stack DECIDIDOS (research SOTA verificado).
-Pendientes: pricing PowerSync (⚠️ §5.2), validación instrumento con la Comisión.
+Sin pendientes de stack: pricing PowerSync verificado GO (§5.2).
 
 ---
 
@@ -152,11 +152,22 @@ Descartes fundamentados:
   (mid-2026) advierte que el tooling local-first es inmaduro** y que el desarrollador
   deberá resolver problemas que las herramientas aún no resuelven [3-0].
 
-⚠️ **Pendiente de verificar antes de comprometer**: pricing/licencia de PowerSync Cloud
-vs self-hosted a jul-2026 (no llegó a verificarse). **Plan B documentado**: outbox
-artesanal + upsert idempotente (patrón ya esbozado en ganadata-mobile) — la arquitectura
-de dominio (UUIDs cliente, documento-agregado) es idéntica con o sin PowerSync, así que
-el switch no toca el modelo.
+✅ **Pricing/licencia verificados (2026-07-05, fuentes primarias)** — GO definitivo:
+- **Cloud Free**: 2 GB sync/mes, 500 MB hosted, 50 conexiones concurrentes — sobra para
+  dev y piloto. ⚠️ Letra chica: las instancias free se **desactivan tras 1 semana de
+  inactividad** — para el piloto, mantener un heartbeat o pasar a Pro.
+- **Cloud Pro**: USD 49/mes (30 GB sync/mes, 10 GB hosted, 1.000 conexiones) — viable
+  para lanzamiento. Nuestro volumen de sync es trivial: las evaluaciones son texto
+  (~cientos de KB por evaluación) y **las fotos NO pasan por PowerSync** (van directo a
+  Storage por la cola de binarios, §5.4), así que los GB no escalan con la evidencia.
+- **Self-hosted (salida de emergencia)**: `powersync-service` es **FSL-1.1-ALv2**
+  (Functional Source License): uso productivo propio gratis e ilimitado — solo prohíbe
+  competirle con un servicio de sync; cada versión se convierte a **Apache 2.0 a los
+  2 años**. Docker, sin dashboard. SDK React Native: **Apache 2.0** pleno. Desarrollo
+  activo (release v1.23.2 el 2026-07-02).
+- **Plan B documentado** (si PowerSync desapareciera): outbox artesanal + upsert
+  idempotente — la arquitectura de dominio (UUIDs cliente, documento-agregado) es
+  idéntica con o sin PowerSync, el switch no toca el modelo.
 
 ### 5.3 Analytics: **Postgres/Supabase con schemas Kimball** (convención GANADATA)
 
