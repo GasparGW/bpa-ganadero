@@ -38,6 +38,23 @@ describe('repositorios SQLite (SQL real vía node:sqlite)', () => {
     expect(ev?.estado).toBe('abierta');
     expect(ev?.cerrada_en).toBeNull();
     expect(ev?.score_pct).toBeNull();
+    // Sin modo explícito, default 'completo' (una evaluación express nunca es implícita).
+    expect(ev?.modo).toBe('completo');
+  });
+
+  it('persiste el modo express cuando se crea así', async () => {
+    const EVAL_X = '44444444-4444-4444-4444-444444444444';
+    await repos.crearEvaluacion(db, {
+      id: EVAL_X,
+      tenantId: T,
+      establecimientoId: EST,
+      instrumento: 'BPG-VC',
+      version: '2026.07',
+      modo: 'express',
+      ahora: iso(2),
+    });
+    const ev = await repos.getEvaluacion(db, EVAL_X);
+    expect(ev?.modo).toBe('express');
   });
 
   it('guarda respuestas y las lista como mapa código → estado', async () => {

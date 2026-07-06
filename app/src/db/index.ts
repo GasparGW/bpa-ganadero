@@ -1,37 +1,32 @@
 /**
- * Apertura del SQLite local (expo-sqlite) y su exposición como SqlDriver a la app.
+ * Apertura del SQLite local y su exposición como SqlDriver a la app.
  *
- * La misma interfaz que testeamos con node:sqlite se satisface en device con el
- * SQLiteDatabase de expo. `abrirBase` es idempotente (cachea la instancia) y corre
- * las migraciones al abrir. El contexto de React entrega el driver ya abierto; el
- * gate de carga (mientras abre) lo maneja App.tsx junto con las fuentes.
+ * La creación del driver es lo único que depende de la plataforma y vive en `./abrir`
+ * (Metro resuelve `abrir.ts` en native = expo-sqlite, `abrir.web.ts` en web = sql.js).
+ * Acá quedan el cacheo idempotente, las migraciones y el contexto de React — idénticos
+ * en todos los targets. El gate de carga (mientras abre) lo maneja App.tsx.
  */
 
-import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { createContext, useContext } from 'react';
 
-import type { RunResult, SqlDriver, SqlValue } from './driver';
+import { crearDriver } from './abrir';
+import type { SqlDriver } from './driver';
 import { migrar } from './repos';
 
-/** Adapta el SQLiteDatabase de expo-sqlite a nuestra interfaz SqlDriver. */
-function expoDriver(db: SQLiteDatabase): SqlDriver {
-  return {
-    execAsync: (sql) => db.execAsync(sql),
-    runAsync: (sql, params = []): Promise<RunResult> => db.runAsync(sql, params as SqlValue[]),
-    getAllAsync: <T,>(sql: string, params: SqlValue[] = []) => db.getAllAsync<T>(sql, params),
-    getFirstAsync: <T,>(sql: string, params: SqlValue[] = []) => db.getFirstAsync<T>(sql, params),
-  };
-}
+// Cacheamos la PROMESA, no el driver resuelto: si `abrirBase` se llama dos veces
+// antes de que la primera termine (StrictMode monta/desmonta, o dos consumidores en
+// paralelo), ambas esperan la misma apertura+migración en vez de abrir/migrar dos veces.
+let cache: Promise<SqlDriver> | null = null;
 
-let cache: SqlDriver | null = null;
-
-export async function abrirBase(): Promise<SqlDriver> {
-  if (cache) return cache;
-  const db = await openDatabaseAsync('bpa-ganadero.db');
-  const driver = expoDriver(db);
-  await migrar(driver);
-  cache = driver;
-  return driver;
+export function abrirBase(): Promise<SqlDriver> {
+  if (cache === null) {
+    cache = (async () => {
+      const driver = await crearDriver();
+      await migrar(driver);
+      return driver;
+    })();
+  }
+  return cache;
 }
 
 export const DbContext = createContext<SqlDriver | null>(null);

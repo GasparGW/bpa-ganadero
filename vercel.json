@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd app && npm run build:web",
+  "outputDirectory": "app/dist",
+  "installCommand": "cd app && npm install",
+  "headers": [
+    {
+      "source": "/sql-wasm-browser.wasm",
+      "headers": [{ "key": "Content-Type", "value": "application/wasm" }]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!assets/|_expo/|.*\\.(?:wasm|js|css|png|ico|ttf|json|map)$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -8,8 +8,8 @@
  */
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { categoriasDe } from '../domain/categorias';
 import type { EstadoRequisito, Respuestas } from '../domain/types';
@@ -17,9 +17,11 @@ import { useDb } from '../db';
 import * as repos from '../db/repos';
 import { TENANT_LOCAL } from '../db/tenant';
 import { nuevoId } from '../db/uuid';
-import { INDICE_REQUISITOS, INSTRUMENTO_META, REQUISITOS } from '../instrumento';
+import { REQUISITOS_EXPRESS } from '../express';
+import { INDICE_REQUISITOS, REQUISITOS } from '../instrumento';
 import type { RootStackParamList } from '../navigation';
 import { color } from '../theme';
+import { useDialogo } from '../ui/Dialogo';
 import { EncabezadoEval } from '../ui/components/EncabezadoEval';
 import { EstadoSelector } from '../ui/components/EstadoSelector';
 import { RequisitoView } from '../ui/components/RequisitoView';
@@ -27,17 +29,28 @@ import { fuente } from '../ui/fonts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Evaluacion'>;
 
-const TOTAL = REQUISITOS.length;
-const TOTAL_POR_CAT = new Map(categoriasDe(REQUISITOS).map((c) => [c.codigo, c.nRequisitos]));
-
 export function EvaluacionScreen({ route, navigation }: Props): React.JSX.Element | null {
   const db = useDb();
-  const { evaluacionId, establecimientoNombre, renspa } = route.params;
+  const { confirmar, avisar } = useDialogo();
+  const { evaluacionId, establecimientoNombre, renspa, modo } = route.params;
+
+  // Mismos requisitos e idéntico flujo; en express sólo se recorre el subset curado.
+  const items = modo === 'express' ? REQUISITOS_EXPRESS : REQUISITOS;
+  const total = items.length;
+  const totalPorCat = useMemo(
+    () => new Map(categoriasDe(items).map((c) => [c.codigo, c.nRequisitos])),
+    [items],
+  );
 
   const [idx, setIdx] = useState(0);
   const [respuestas, setRespuestas] = useState<Respuestas | null>(null);
   const [pendientes, setPendientes] = useState(0);
   const [cerrando, setCerrando] = useState(false);
+  // Guard de reentrada: `cerrando` (state) recién se setea DESPUÉS de que confirma
+  // resuelve, así que no cubre la ventana entre el tap y el modal. Un doble-tap en
+  // "Finalizar →" dispararía dos cierres + dos navigation.replace. El ref bloquea
+  // sincrónicamente desde el primer tap.
+  const cerrandoRef = useRef(false);
 
   useEffect(() => {
     let vivo = true;
@@ -56,7 +69,7 @@ export function EvaluacionScreen({ route, navigation }: Props): React.JSX.Elemen
     };
   }, [db, evaluacionId]);
 
-  const requisito = REQUISITOS[idx];
+  const requisito = items[idx];
 
   const catHechos = useMemo(() => {
     if (respuestas === null) return 0;
@@ -84,45 +97,53 @@ export function EvaluacionScreen({ route, navigation }: Props): React.JSX.Elemen
         setRespuestas((prev) => ({ ...(prev ?? {}), [requisito.codigo]: estado }));
         setPendientes(await repos.contarPendientes(db, evaluacionId));
       } catch (e) {
-        Alert.alert('No se pudo guardar', String(e instanceof Error ? e.message : e));
+        void avisar({
+          titulo: 'No se pudo guardar',
+          mensaje: String(e instanceof Error ? e.message : e),
+        });
       }
     },
-    [db, evaluacionId, requisito.codigo],
+    [db, evaluacionId, requisito.codigo, avisar],
   );
 
   const finalizar = useCallback(() => {
-    Alert.alert(
-      'Cerrar la evaluación',
-      'Al cerrar la evaluación, el resultado queda fijo y no se puede editar.',
-      [
-        { text: 'Volver', style: 'cancel' },
-        {
-          text: 'Cerrar y ver resultado',
-          style: 'default',
-          onPress: () => {
-            setCerrando(true);
-            void (async () => {
-              try {
-                await repos.cerrarEvaluacion(db, {
-                  evaluacionId,
-                  requisitosPorCodigo: INDICE_REQUISITOS,
-                  ahora: new Date().toISOString(),
-                });
-                navigation.replace('Resultado', { evaluacionId, establecimientoNombre, renspa });
-              } catch (e) {
-                setCerrando(false);
-                Alert.alert('No se pudo cerrar', String(e instanceof Error ? e.message : e));
-              }
-            })();
-          },
-        },
-      ],
-    );
-  }, [db, evaluacionId, establecimientoNombre, renspa, navigation]);
+    if (cerrandoRef.current) return; // ya hay un cierre en curso (doble-tap)
+    cerrandoRef.current = true;
+    void (async () => {
+      // Confirmación por promesa (no callback de Alert): en web el onPress de los
+      // botones de Alert no dispara y este cierre quedaba muerto. Ahora es flujo async.
+      const ok = await confirmar({
+        titulo: 'Cerrar la evaluación',
+        mensaje: 'Al cerrar la evaluación, el resultado queda fijo y no se puede editar.',
+        confirmarTexto: 'Cerrar y ver resultado',
+        cancelarTexto: 'Volver',
+      });
+      if (!ok) {
+        cerrandoRef.current = false;
+        return;
+      }
+      setCerrando(true);
+      try {
+        await repos.cerrarEvaluacion(db, {
+          evaluacionId,
+          requisitosPorCodigo: INDICE_REQUISITOS,
+          ahora: new Date().toISOString(),
+        });
+        navigation.replace('Resultado', { evaluacionId, establecimientoNombre, renspa });
+      } catch (e) {
+        cerrandoRef.current = false;
+        setCerrando(false);
+        await avisar({
+          titulo: 'No se pudo cerrar',
+          mensaje: String(e instanceof Error ? e.message : e),
+        });
+      }
+    })();
+  }, [db, evaluacionId, establecimientoNombre, renspa, navigation, confirmar, avisar]);
 
   if (respuestas === null) return null; // gate breve mientras carga la base
 
-  const esUltimo = idx === TOTAL - 1;
+  const esUltimo = idx === total - 1;
   const hechos = Object.keys(respuestas).length;
 
   return (
@@ -133,9 +154,9 @@ export function EvaluacionScreen({ route, navigation }: Props): React.JSX.Elemen
         categoriaCodigo={requisito.categoria_codigo}
         categoriaNombre={requisito.categoria}
         catHechos={catHechos}
-        catTotal={TOTAL_POR_CAT.get(requisito.categoria_codigo) ?? 0}
+        catTotal={totalPorCat.get(requisito.categoria_codigo) ?? 0}
         totalHechos={hechos}
-        totalTotal={TOTAL}
+        totalTotal={total}
         pendientes={pendientes}
       />
 
@@ -165,7 +186,7 @@ export function EvaluacionScreen({ route, navigation }: Props): React.JSX.Elemen
           <Pressable
             accessibilityRole="button"
             disabled={esUltimo}
-            onPress={() => setIdx((i) => Math.min(TOTAL - 1, i + 1))}
+            onPress={() => setIdx((i) => Math.min(total - 1, i + 1))}
             style={[styles.btnNav, styles.btnPrimario, esUltimo && styles.btnNavOff]}
           >
             <Text style={styles.btnPrimarioTxt}>Siguiente →</Text>

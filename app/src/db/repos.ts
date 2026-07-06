@@ -87,16 +87,27 @@ export interface NuevaEvaluacion {
   readonly establecimientoId: string;
   readonly instrumento: string;
   readonly version: string;
+  /** 'completo' recorre los 320; 'express' el subset curado. Default 'completo'. */
+  readonly modo?: 'completo' | 'express';
   readonly ahora: string;
 }
 
 export async function crearEvaluacion(db: SqlDriver, ev: NuevaEvaluacion): Promise<void> {
   await db.runAsync(
     `insert into evaluacion
-       (id, tenant_id, establecimiento_id, instrumento, version, estado,
+       (id, tenant_id, establecimiento_id, instrumento, version, modo, estado,
         abierta_en, actualizado_en, pendiente_sync)
-     values (?, ?, ?, ?, ?, 'abierta', ?, ?, 1)`,
-    [ev.id, ev.tenantId, ev.establecimientoId, ev.instrumento, ev.version, ev.ahora, ev.ahora],
+     values (?, ?, ?, ?, ?, ?, 'abierta', ?, ?, 1)`,
+    [
+      ev.id,
+      ev.tenantId,
+      ev.establecimientoId,
+      ev.instrumento,
+      ev.version,
+      ev.modo ?? 'completo',
+      ev.ahora,
+      ev.ahora,
+    ],
   );
 }
 
@@ -191,6 +202,7 @@ export interface EvaluacionRow {
   readonly establecimiento_id: string;
   readonly instrumento: string;
   readonly version: string;
+  readonly modo: 'completo' | 'express';
   readonly estado: 'abierta' | 'cerrada';
   readonly abierta_en: string;
   readonly cerrada_en: string | null;
@@ -204,7 +216,7 @@ export async function getEvaluacion(
   evaluacionId: string,
 ): Promise<EvaluacionRow | null> {
   return db.getFirstAsync<EvaluacionRow>(
-    `select id, tenant_id, establecimiento_id, instrumento, version, estado,
+    `select id, tenant_id, establecimiento_id, instrumento, version, modo, estado,
             abierta_en, cerrada_en, puntos_obtenidos, maximo_aplicable, score_pct
        from evaluacion where id = ?`,
     [evaluacionId],

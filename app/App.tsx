@@ -15,10 +15,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { abrirBase, DbContext } from './src/db';
 import type { SqlDriver } from './src/db/driver';
 import type { RootStackParamList } from './src/navigation';
+import { registrarServiceWorker } from './src/pwa';
 import { EvaluacionScreen } from './src/screens/EvaluacionScreen';
 import { InicioScreen } from './src/screens/InicioScreen';
+import { PlanScreen } from './src/screens/PlanScreen';
 import { ResultadoScreen } from './src/screens/ResultadoScreen';
 import { color } from './src/theme';
+import { DialogoProvider } from './src/ui/Dialogo';
 import { fuente, useAppFonts } from './src/ui/fonts';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,6 +39,11 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     abrir();
   }, [abrir]);
+
+  // Uso offline en web (no-op en native). Una sola vez, al montar.
+  useEffect(() => {
+    registrarServiceWorker();
+  }, []);
 
   // Falla de la base = puerta de entrada rota: mostramos el error con reintento en vez
   // de dejar la app colgada en el spinner (axioma: nunca fallar en silencio).
@@ -65,19 +73,22 @@ export default function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <DbContext.Provider value={db}>
-        <StatusBar style="light" />
-        <NavigationContainer>
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: color.paper },
-            }}
-          >
-            <Stack.Screen name="Inicio" component={InicioScreen} />
-            <Stack.Screen name="Evaluacion" component={EvaluacionScreen} />
-            <Stack.Screen name="Resultado" component={ResultadoScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <DialogoProvider>
+          <StatusBar style="light" />
+          <NavigationContainer>
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: color.paper },
+              }}
+            >
+              <Stack.Screen name="Inicio" component={InicioScreen} />
+              <Stack.Screen name="Evaluacion" component={EvaluacionScreen} />
+              <Stack.Screen name="Resultado" component={ResultadoScreen} />
+              <Stack.Screen name="Plan" component={PlanScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </DialogoProvider>
       </DbContext.Provider>
     </SafeAreaProvider>
   );

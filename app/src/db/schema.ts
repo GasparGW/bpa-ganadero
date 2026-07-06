@@ -36,6 +36,10 @@ create table if not exists evaluacion (
   establecimiento_id text not null references establecimiento(id),
   instrumento        text not null,
   version            text not null,
+  -- Modo del recorrido: 'completo' (los 320) o 'express' (subset curado de esenciales,
+  -- una prueba rápida). Vive en la fila para que el historial y el sync futuro puedan
+  -- distinguir una prueba express de un autodiagnóstico real (no contaminar indicadores).
+  modo               text not null default 'completo' check (modo in ('completo', 'express')),
   estado             text not null default 'abierta' check (estado in ('abierta', 'cerrada')),
   abierta_en         text not null,
   cerrada_en         text,

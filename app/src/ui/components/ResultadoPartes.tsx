@@ -3,10 +3,13 @@
  *  - ScoreHero: el número grande + puntos aplicables + versión del instrumento.
  *  - GapBanner: titular de brechas (NP1 sin implementar) y score potencial.
  *  - CategoriaRow: una fila del desglose por categoría, coloreada por nivel.
+ *  - ExpressHero / ExpressDesglose: resultado del modo express ("M de N esenciales",
+ *    sin porcentaje — es una prueba rápida, no una medición del instrumento).
  */
 
 import { StyleSheet, Text, View } from 'react-native';
 
+import type { ResumenExpress } from '../../express';
 import { color } from '../../theme';
 import { fuente } from '../fonts';
 import { pct, puntos } from '../formato';
@@ -82,7 +85,44 @@ export function CategoriaRow({ nombre, nRequisitos, scorePct }: FilaProps): Reac
   );
 }
 
+/** Hero del modo express: "M / N" grande + "ESENCIALES IMPLEMENTADOS". Sin porcentaje. */
+export function ExpressHero({ resumen }: { resumen: ResumenExpress }): React.JSX.Element {
+  return (
+    <View style={styles.hero}>
+      <Text style={styles.num}>
+        {resumen.implementados}
+        <Text style={styles.pctSigno}> / {resumen.total}</Text>
+      </Text>
+      <Text style={styles.sub}>ESENCIALES IMPLEMENTADOS · PRUEBA RÁPIDA</Text>
+    </View>
+  );
+}
+
+/** Desglose del express: parciales / sin implementar / sin responder, una fila cada uno. */
+export function ExpressDesglose({ resumen }: { resumen: ResumenExpress }): React.JSX.Element {
+  const filas: { etiqueta: string; valor: number; color: string }[] = [
+    { etiqueta: 'Implementados', valor: resumen.implementados, color: color.estado.it },
+    { etiqueta: 'Parciales', valor: resumen.parciales, color: color.estado.ip },
+    { etiqueta: 'Sin implementar', valor: resumen.sinImplementar, color: color.estado.ni },
+    { etiqueta: 'No aplica', valor: resumen.noAplica, color: color.estado.na },
+    { etiqueta: 'Sin responder', valor: resumen.sinResponder, color: color.ink2 },
+  ];
+  return (
+    <View style={styles.lista}>
+      {filas.map((f) => (
+        <View key={f.etiqueta} style={styles.fila}>
+          <View style={[styles.punto, { backgroundColor: f.color }]} />
+          <Text style={styles.nombre}>{f.etiqueta}</Text>
+          <Text style={[styles.score, { color: f.color }]}>{f.valor}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  lista: { paddingHorizontal: 16 },
+  punto: { width: 10, height: 10, borderRadius: 5 },
   hero: {
     paddingHorizontal: 16,
     paddingTop: 28,

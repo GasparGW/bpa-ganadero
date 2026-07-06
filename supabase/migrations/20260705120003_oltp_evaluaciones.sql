@@ -34,6 +34,9 @@ create table app.evaluacion (
   tenant_id              uuid not null,
   establecimiento_id     uuid not null references app.establecimiento(id),
   instrumento_version_id uuid not null references bpg.instrumento_version(id),
+  -- Modo del recorrido: 'completo' (los 320) o 'express' (subset curado de esenciales).
+  -- El historial y los indicadores de impacto deben poder excluir las pruebas express.
+  modo                   text not null default 'completo' check (modo in ('completo', 'express')),
   estado                 text not null default 'abierta' check (estado in ('abierta', 'cerrada')),
   abierta_en             timestamptz not null default now(),
   cerrada_en             timestamptz,

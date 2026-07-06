@@ -8,7 +8,7 @@
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { analizarGaps, type AnalisisGaps } from '../domain/gaps';
@@ -17,10 +17,17 @@ import { calcularScorePorCategoria } from '../domain/scoring';
 import { useDb } from '../db';
 import * as repos from '../db/repos';
 import type { EvaluacionRow } from '../db/repos';
+import { resumenExpress, type ResumenExpress } from '../express';
 import { INDICE_REQUISITOS, REQUISITOS } from '../instrumento';
 import type { RootStackParamList } from '../navigation';
 import { color } from '../theme';
-import { CategoriaRow, GapBanner, ScoreHero } from '../ui/components/ResultadoPartes';
+import {
+  CategoriaRow,
+  ExpressDesglose,
+  ExpressHero,
+  GapBanner,
+  ScoreHero,
+} from '../ui/components/ResultadoPartes';
 import { SyncChip } from '../ui/components/SyncChip';
 import { fuente } from '../ui/fonts';
 import { fechaCorta } from '../ui/formato';
@@ -34,13 +41,14 @@ interface Datos {
   ev: EvaluacionRow;
   gaps: AnalisisGaps;
   porCategoria: ReadonlyMap<string, number | null>;
+  resumen: ResumenExpress;
   hechos: number;
   pendientes: number;
 }
 
 type Estado = { tag: 'cargando' } | { tag: 'no-encontrada' } | { tag: 'ok'; datos: Datos };
 
-export function ResultadoScreen({ route }: Props): React.JSX.Element {
+export function ResultadoScreen({ route, navigation }: Props): React.JSX.Element {
   const db = useDb();
   const insets = useSafeAreaInsets();
   const { evaluacionId, establecimientoNombre, renspa } = route.params;
@@ -69,6 +77,7 @@ export function ResultadoScreen({ route }: Props): React.JSX.Element {
           ev,
           gaps: analizarGaps(respuestas, INDICE_REQUISITOS),
           porCategoria,
+          resumen: resumenExpress(respuestas),
           hechos: Object.keys(respuestas).length,
           pendientes,
         },
@@ -93,7 +102,9 @@ export function ResultadoScreen({ route }: Props): React.JSX.Element {
       </View>
     );
   }
-  const { ev, gaps, porCategoria, hechos, pendientes } = estado.datos;
+  const { ev, gaps, porCategoria, resumen, hechos, pendientes } = estado.datos;
+  const esExpress = ev.modo === 'express';
+  const hayGaps = gaps.gaps.length > 0;
   const titulo = renspa ? `${establecimientoNombre} · RENSPA ${renspa}` : establecimientoNombre;
 
   return (
@@ -105,35 +116,61 @@ export function ResultadoScreen({ route }: Props): React.JSX.Element {
           </Text>
           <SyncChip pendientes={pendientes} />
         </View>
-        <Text style={styles.categoria}>Resultado del autodiagnóstico</Text>
+        <Text style={styles.categoria}>
+          {esExpress ? 'Resultado del modo express' : 'Resultado del autodiagnóstico'}
+        </Text>
         <View style={styles.meta}>
           <Text style={styles.metaTxt}>CERRADA {fechaCorta(ev.cerrada_en)}</Text>
           <Text style={styles.metaTxt}>
-            {hechos}/{TOTAL}
+            {hechos}/{esExpress ? resumen.total : TOTAL}
           </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.cuerpo}>
-        <ScoreHero
-          scorePct={ev.score_pct}
-          puntosObtenidos={ev.puntos_obtenidos ?? 0}
-          maximoAplicable={ev.maximo_aplicable ?? 0}
-          instrumento={ev.instrumento}
-          version={ev.version}
-        />
-        <GapBanner np1Ni={gaps.np1_ni} scorePotencial={gaps.score_potencial} />
-        <View style={styles.lista}>
-          {CATEGORIAS.map((c) => (
-            <CategoriaRow
-              key={c.codigo}
-              nombre={c.nombre}
-              nRequisitos={c.nRequisitos}
-              scorePct={porCategoria.get(c.codigo) ?? null}
+        {esExpress ? (
+          <>
+            <ExpressHero resumen={resumen} />
+            <GapBanner np1Ni={gaps.np1_ni} scorePotencial={null} />
+            <ExpressDesglose resumen={resumen} />
+          </>
+        ) : (
+          <>
+            <ScoreHero
+              scorePct={ev.score_pct}
+              puntosObtenidos={ev.puntos_obtenidos ?? 0}
+              maximoAplicable={ev.maximo_aplicable ?? 0}
+              instrumento={ev.instrumento}
+              version={ev.version}
             />
-          ))}
-        </View>
+            <GapBanner np1Ni={gaps.np1_ni} scorePotencial={gaps.score_potencial} />
+            <View style={styles.lista}>
+              {CATEGORIAS.map((c) => (
+                <CategoriaRow
+                  key={c.codigo}
+                  nombre={c.nombre}
+                  nRequisitos={c.nRequisitos}
+                  scorePct={porCategoria.get(c.codigo) ?? null}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
+
+      {hayGaps ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.cta}
+            onPress={() =>
+              navigation.navigate('Plan', { evaluacionId, establecimientoNombre, renspa })
+            }
+          >
+            <Text style={styles.ctaTxt}>Ver plan de acción →</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -161,4 +198,19 @@ const styles = StyleSheet.create({
   },
   cuerpo: { paddingBottom: 32 },
   lista: { paddingHorizontal: 16 },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: color.surface,
+    borderTopWidth: 1,
+    borderTopColor: color.line,
+  },
+  cta: {
+    height: 52,
+    borderRadius: 4,
+    backgroundColor: color.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaTxt: { fontFamily: fuente.uiFuerte, fontSize: 16, color: '#FFFFFF' },
 });
